@@ -4,6 +4,7 @@ def init args
   args.state.grid_h = 9
   args.state.tile_size = 80
   args.state.starting_height = 480
+  args.state.highlight = false
   load_grid args
 end
 
@@ -98,7 +99,10 @@ def tick args
     x = (point.x / args.state.tile_size).to_i
     y = ((point.y - args.state.starting_height) / args.state.tile_size).to_i
     if args.state.grid.has_key?([x,y])
-      args.state.grid[[x,y]].path = 'sprites/circle/red.png'
+      s = args.state.tile_size
+      tx = x * s
+      ty = (y * s) + args.state.starting_height
+      args.state.highlight = {x:tx, y:ty, w:s, h:s, r:255, g:255, b:0, a:128}.solid!
     end
   end
 
@@ -106,4 +110,7 @@ def tick args
 
   args.outputs.primitives << {x:0, y:0, w:720, h:1280, r:0, g:0, b:0}.solid!
   draw_grid args
+  if args.state.highlight
+    args.outputs.primitives << args.state.highlight
+  end
 end
