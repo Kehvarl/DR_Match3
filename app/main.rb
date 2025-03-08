@@ -89,10 +89,10 @@ def find_groups args
 end
 
 def adjacent? a, b
-  if a.x == b.x
-    return (a.y-1 == b.y) or (a.y+1 == b.y)
-  elsif a.y == b.y
-    return (a.x-1 == b.x) or (a.x+1 == b.x)
+  if a.x == b.gx
+    return (a.y == b.gy-1) or (a.y == b.gy+1)
+  elsif a.y == b.gy
+    return (a.x == b.gx-1) or (a.x == b.gx+1)
   else
     return false
   end
@@ -114,11 +114,12 @@ def tick args
         s = args.state.tile_size
         tx = x * s
         ty = (y * s) + args.state.starting_height
-        h = {gx:x, gy:y, x:tx, y:ty, w:s, h:s, r:255, g:255, b:0, a:128}.solid!
+        args.state.highlight = {gx:x, gy:y, x:tx, y:ty, w:s, h:s, r:255, g:255, b:0, a:128}.solid!
       else
-        temp = args.state.grid[[tx,ty]]
-        args.state.grid[[tx,ty]] = args.state.grid[[h.gx,h.gy]]
+        temp = args.state.grid[[x,y]].dup
+        args.state.grid[[x,y]] = args.state.grid[[h.gx,h.gy]].dup
         args.state.grid[[h.gx,h.gy]] = temp
+        args.state.highlight = false
       end
     end
   end
