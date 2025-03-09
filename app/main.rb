@@ -89,13 +89,28 @@ def find_groups args
 end
 
 def adjacent? a, b
-  if a.x == b.gx
-    return (a.y == b.gy-1) or (a.y == b.gy+1)
-  elsif a.y == b.gy
-    return (a.x == b.gx-1) or (a.x == b.gx+1)
+  if a.x == b.x
+    return (a.y == b.y-1) or (a.y == b.y+1)
+  elsif a.y == b.y
+    puts "#{a}, #{b}"
+    return (a.x == b.x-1) or (a.x == b.x+1)
   else
     return false
   end
+end
+
+def do_swap args, a, b
+  ta = args.state.grid[a].dup
+  tb = args.state.grid[b].dup
+  tx = ta.x
+  ty = ta.y
+  ta.x = tb.x
+  ta.y = tb.y
+  tb.x = tx
+  tb.y = ty
+  args.state.grid[a] = tb
+  args.state.grid[b] = ta
+  args.state.highlight = false
 end
 
 def tick args
@@ -110,16 +125,13 @@ def tick args
     y = ((point.y - args.state.starting_height) / args.state.tile_size).to_i
     if args.state.grid.has_key?([x,y])
       h = args.state.highlight
-      if (not h) or not adjacent?({x:x, y:y}, h)
+      if (not h) or not adjacent?({x:x,y:y}, {x:h.gx, y:h.gy})
         s = args.state.tile_size
         tx = x * s
         ty = (y * s) + args.state.starting_height
         args.state.highlight = {gx:x, gy:y, x:tx, y:ty, w:s, h:s, r:255, g:255, b:0, a:128}.solid!
       else
-        temp = args.state.grid[[x,y]].dup
-        args.state.grid[[x,y]] = args.state.grid[[h.gx,h.gy]].dup
-        args.state.grid[[h.gx,h.gy]] = temp
-        args.state.highlight = false
+        do_swap(args, [x,y], [h.gx, h.gy])
       end
     end
   end
