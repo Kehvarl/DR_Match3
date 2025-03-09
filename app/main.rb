@@ -34,7 +34,7 @@ def check_vertical args, x, y
   linked = [[x,y]]
   ty = y +1
   while ty < args.state.grid_h
-    if args.state.grid[[x,ty]].name == ref
+    if args.state.grid.has_key?([x,ty]) and args.state.grid[[x,ty]].name == ref
       linked << [x,ty]
     else
       break
@@ -44,7 +44,7 @@ def check_vertical args, x, y
 
   ty = y -1
   while ty > 0
-    if args.state.grid[[x,ty]].name == ref
+    if args.state.grid.has_key?([x,ty]) and args.state.grid[[x,ty]].name == ref
       linked << [x,ty]
     else
       break
@@ -59,7 +59,7 @@ def check_horizontal args, x, y
   linked = [x,y]
   tx = x +1
   while tx < args.state.grid_w
-    if args.state.grid[[tx,y]].name == ref
+    if args.state.grid.has_key?([tx,y]) and args.state.grid[[tx,y]].name == ref
       linked << [tx,y]
     else
       break
@@ -69,7 +69,7 @@ def check_horizontal args, x, y
 
   tx = x -1
   while tx > 0
-    if args.state.grid[[tx,y]].name == ref
+    if args.state.grid.has_key?([tx,y]) and args.state.grid[[tx,y]].name == ref
       linked << [tx,y]
     else
       break
@@ -80,12 +80,17 @@ def check_horizontal args, x, y
 end
 
 def find_groups args
+  out = []
   (0...args.state.grid_h).each do |y|
     (0...args.state.grid_w).each do |x|
-      # puts "#{x}, #{y}  - H: #{check_horizontal args, x, y}"
-      # puts "#{x}, #{y}  - V: #{check_vertical args, x, y}"
+      if args.state.grid.has_key?([x,y])
+        adj = check_horizontal(args, x, y) + (check_vertical args, x, y)
+        adj = adj.select{ |a| not out.include?(a)}
+        out += adj
+      end
     end
   end
+  out
 end
 
 def adjacent? a, b
@@ -136,7 +141,9 @@ def tick args
     end
   end
 
-  find_groups args
+  find_groups(args).each do |tile|
+    args.state.grid.delete(tile)
+  end
 
   args.outputs.primitives << {x:0, y:0, w:720, h:1280, r:0, g:0, b:0}.solid!
   draw_grid args
