@@ -123,6 +123,14 @@ def tick args
     init args
   end
 
+  # GetClick
+  # Highlight
+  # Swap If Legal
+  # Check Groups
+  # Clear Groups
+  # Drop Tiles
+
+
   if args.inputs.mouse.click
     point = args.inputs.mouse.click.point
 
