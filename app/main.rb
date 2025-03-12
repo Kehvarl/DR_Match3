@@ -118,19 +118,7 @@ def do_swap args, a, b
   args.state.highlight = false
 end
 
-def tick args
-  if args.tick_count == 0
-    init args
-  end
-
-  # GetClick
-  # Highlight
-  # Swap If Legal
-  # Check Groups
-  # Clear Groups
-  # Drop Tiles
-
-
+def get_click args
   if args.inputs.mouse.click
     point = args.inputs.mouse.click.point
 
@@ -148,6 +136,23 @@ def tick args
       end
     end
   end
+end
+
+
+def tick args
+  if args.tick_count == 0
+    init args
+  end
+
+  # GetClick
+  # Highlight
+  # Swap If Legal
+  # Check Groups
+  # Clear Groups
+  # Drop Tiles
+
+
+  get_click(args)
 
   find_groups(args).each do |tile|
     args.state.grid.delete(tile)
