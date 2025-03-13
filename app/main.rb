@@ -84,9 +84,13 @@ def find_groups args
   (0...args.state.grid_h).each do |y|
     (0...args.state.grid_w).each do |x|
       if args.state.grid.has_key?([x,y])
-        adj = check_horizontal(args, x, y) + (check_vertical args, x, y)
-        adj = adj.select{ |a| not out.include?(a)}
-        out += adj
+        a = check_horizontal(args, x, y)
+        b = (check_vertical args, x, y)
+        if a.size > 3 || b.size > 2
+          adj = a + b
+          adj = adj.select{ |t| not out.include?(t)}
+          out += adj
+        end
       end
     end
   end
