@@ -97,11 +97,30 @@ def find_groups args
   out
 end
 
+def drop args
+  changed = false
+  (1...args.state.grid_h).each do |y|
+    (0...args.state.grid_w).each do |x|
+      if args.state.grid.has_key?([x,y])
+        if not args.state.grid.has_key?([x, y-1])
+          ta = args.state.grid[[x,y]].dup
+          ta.y -= args.state.tile_size
+          args.state.grid.delete([x,y])
+          args.state.grid[[x,y-1]] = ta
+          changed = true
+        end
+      end
+    end
+  end
+  if changed
+    drop args
+  end
+end
+
 def adjacent? a, b
   if a.x == b.x
     return (a.y == b.y-1) or (a.y == b.y+1)
   elsif a.y == b.y
-    puts "#{a}, #{b}"
     return (a.x == b.x-1) or (a.x == b.x+1)
   else
     return false
@@ -161,6 +180,8 @@ def tick args
   find_groups(args).each do |tile|
     args.state.grid.delete(tile)
   end
+
+  drop args
 
   args.outputs.primitives << {x:0, y:0, w:720, h:1280, r:0, g:0, b:0}.solid!
   draw_grid args
