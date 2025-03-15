@@ -5,10 +5,11 @@ class Tile
         @name = vals.name || "Undefined"
         @x = vals.x || 0
         @y = vals.y || 0
+        @s = vals.s || 80
         @w = vals.w || 50
         @h = vals.h || 74
-        @tile_w = 22
-        @tile_h = 37
+        @tile_w = vals.tile_w || 22
+        @tile_h = vals.tile_h || 37
         @tile_x = 0
         @tile_y = 0
         @path = vals.path || "sprites/misc/explosion-0.png"
@@ -21,6 +22,8 @@ class Tile
         @current_frame = vals.start_frame || 0
         @frame_delay = vals.frame_delay || 10
         @current_delay = @frame_delay
+        @x += (@s - @w).div(2)
+
 
     end
 
@@ -94,16 +97,27 @@ class Grid
         return false
     end
 
-    def highlight tile
+    def adjacent? a, b
+        if a.x == b.x
+            return ((a.y == b.y-1) or (a.y == b.y+1))
+        elsif a.y == b.y
+            return ((a.x == b.x-1) or (a.x == b.x+1))
+        else
+            return false
+        end
+    end
+
+    def highlight x, y
         if @tiles.has_key?([x,y])
             h = @highlight
-            if (not h) or not adjacent?({x:x,y:y}, {x:h.gx, y:h.gy})
-                s = args.state.tile_size
-                tx = x * s
-                ty = (y * s) + args.state.starting_height
-                args.state.highlight = {gx:x, gy:y, x:tx, y:ty, w:s, h:s, r:255, g:255, b:0, a:128}.solid!
+            if (not h) or (not adjacent?({x:x,y:y}, {x:h.gx, y:h.gy}))
+                tx = x * @tile_w
+                ty = (y * @tile_h) + @min_y
+                @highlight = {gx:x, gy:y, x:tx, y:ty, w:@tile_w, h:@tile_h, r:255, g:255, b:0, a:128}.solid!
+                return true
             else
-                do_swap(args, [x,y], [h.gx, h.gy])
+                #do_swap(args, [x,y], [h.gx, h.gy])
+                return false
             end
         end
     end
@@ -113,7 +127,15 @@ class Grid
         @tiles.each {|t| t[1].tick()}
 
         # get_click
+        clicked_tile = get_click()
+
         # Highlight or Find Swap
+        if clicked_tile
+            puts clicked_tile
+            highlighted = highlight(clicked_tile.x, clicked_tile.y)
+        end
+
+
         # Flag Swap
         # Animate Swap
         # Find groups
