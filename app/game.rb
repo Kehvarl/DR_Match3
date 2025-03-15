@@ -5,8 +5,8 @@ class Tile
         @name = vals.name || "Undefined"
         @x = vals.x || 0
         @y = vals.y || 0
-        @w = vals.w || 44
-        @h = vals.h || 70
+        @w = vals.w || 50
+        @h = vals.h || 74
         @tile_w = 22
         @tile_h = 37
         @tile_x = 0
@@ -18,9 +18,9 @@ class Tile
         @destinatin_y = @y
         @status = :idle
         @frames = 8
-        @current_frame = 0
-        @frame_delay = 10
-        @current_delay = 10
+        @current_frame = vals.start_frame || 0
+        @frame_delay = vals.frame_delay || 10
+        @current_delay = @frame_delay
 
     end
 
@@ -71,7 +71,7 @@ class Grid
     end
 
     def make_tile x, y, sy, w, h, name
-        Tile.new({name: name, x:x*w, y:sy+y*h, path:"sprites/potions/bv_#{name}.png"})
+        Tile.new({name: name, x:x*w, y:sy+y*h, path:"sprites/potions/bv_#{name}.png", start_frame: rand(7), frame_delay: rand(4) + 4})
     end
 
     def setup_tiles
@@ -110,7 +110,7 @@ class Grid
 
     def tick
         # Tick Tiles
-        @tiles[[0,0]].tick()
+        @tiles.each {|t| t[1].tick()}
 
         # get_click
         # Highlight or Find Swap
