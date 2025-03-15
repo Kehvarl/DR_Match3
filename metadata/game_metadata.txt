@@ -1,8 +1,8 @@
 # Remove the pound sign and leading space for the properties below before publishing your game.
 devid=kehvarl
 devtitle=Kehvarl
-gameid=dr-match3
-gametitle=DR Match 3
+gameid=potion-sort
+gametitle=Potion Sort
 version=0.1
 icon=metadata/icon.png
 
