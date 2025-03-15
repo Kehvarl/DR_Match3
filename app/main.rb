@@ -167,14 +167,6 @@ def tick args
     init args
   end
 
-  # GetClick
-  # Highlight
-  # Swap If Legal
-  # Check Groups
-  # Clear Groups
-  # Drop Tiles
-
-
   get_click(args)
 
   find_groups(args).each do |tile|
@@ -182,6 +174,8 @@ def tick args
   end
 
   drop args
+
+  # Fill in Empty Spaces
 
   args.outputs.primitives << {x:0, y:0, w:720, h:1280, r:0, g:0, b:0}.solid!
   draw_grid args
