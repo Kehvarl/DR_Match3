@@ -107,17 +107,22 @@ class Grid
         end
     end
 
-    def highlight x, y
+    def highlight_or_flag x, y
         if @tiles.has_key?([x,y])
             h = @highlight
             if (not h) or (not adjacent?({x:x,y:y}, {x:h.gx, y:h.gy}))
                 tx = x * @tile_w
                 ty = (y * @tile_h) + @min_y
                 @highlight = {gx:x, gy:y, x:tx, y:ty, w:@tile_w, h:@tile_h, r:255, g:255, b:0, a:128}.solid!
-                return true
             else
-                #do_swap(args, [x,y], [h.gx, h.gy])
-                return false
+                # Flag tiles to swap
+                @tiles[[x,y]].sx = h.gx
+                @tiles[[x,y]].sy = h.gy
+                @tiles[[x,y]].status = :swap
+
+                @tiles[[h.gx,h.gy]].sx = x
+                @tiles[[h.gx,h.gy]].sy = y
+                @tiles[[h.gx,h.gy]].status = :swap
             end
         end
     end
@@ -126,17 +131,14 @@ class Grid
         # Tick Tiles
         @tiles.each {|t| t[1].tick()}
 
-        # get_click
+        # Get Click
         clicked_tile = get_click()
 
-        # Highlight or Find Swap
+        # Highlight ot Flag Swap
         if clicked_tile
-            puts clicked_tile
-            highlighted = highlight(clicked_tile.x, clicked_tile.y)
+            highlight_or_flag(clicked_tile.x, clicked_tile.y)
         end
 
-
-        # Flag Swap
         # Animate Swap
         # Find groups
         # Flag Groups
