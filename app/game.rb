@@ -1,8 +1,11 @@
 class Tile
     attr_sprite
+    attr_accessor :sx, :sy, :status
 
     def initialize vals
         @name = vals.name || "Undefined"
+        @sx = nil
+        @sy = nil
         @x = vals.x || 0
         @y = vals.y || 0
         @s = vals.s || 80
@@ -57,6 +60,10 @@ class Tile
     def tick
         idle()
     end
+
+    def to_str
+        "(#{@x}, #{@y}, #{@w}, #{@h}), #{@status}, (#{@sx}, #{@sy})"
+    end
 end
 
 class Grid
@@ -69,6 +76,7 @@ class Grid
         @tile_h = 80
         @min_y = 480
         @highlight = false
+        @swap = []
         setup_tiles
 
     end
@@ -116,13 +124,14 @@ class Grid
                 @highlight = {gx:x, gy:y, x:tx, y:ty, w:@tile_w, h:@tile_h, r:255, g:255, b:0, a:128}.solid!
             else
                 # Flag tiles to swap
-                @tiles[[x,y]].sx = h.gx
-                @tiles[[x,y]].sy = h.gy
+                @tiles[[x,y]].sx = h.x
+                @tiles[[x,y]].sy = h.y
                 @tiles[[x,y]].status = :swap
 
-                @tiles[[h.gx,h.gy]].sx = x
-                @tiles[[h.gx,h.gy]].sy = y
+                @tiles[[h.gx,h.gy]].sx = @tiles[[x,y]].x
+                @tiles[[h.gx,h.gy]].sy = @tiles[[x,y]].y
                 @tiles[[h.gx,h.gy]].status = :swap
+                @swap = [[x,y],[h.gx, h.gy]]
             end
         end
     end
@@ -140,6 +149,35 @@ class Grid
         end
 
         # Animate Swap
+        complete = false
+        @swap.each do |s|
+            t = @tiles[s]
+            puts t.to_str
+            if t.x > t.sx
+                t.x -= 1
+            elsif t.x < t.sx
+                t.x += 1
+            end
+            if t.y > t.sy
+                t.y -= 1
+            elsif t.y < t.sy
+                t.y += 1
+            end
+            if t.x == t.sx and t.y == t.sy
+                t.sx = nil
+                t.sy = nil
+                t.status = :idle
+                complete = true
+            end
+        end
+        if complete
+            t = @tiles[@swap[0]]
+            @tiles[@swap[0]] = @tiles[@swap[1]]
+            @tiles[@swap[0]] = t
+            @swap = []
+            @highlight = false
+        end
+
         # Find groups
         # Flag Groups
         # Animate Remove
