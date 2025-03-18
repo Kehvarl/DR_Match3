@@ -123,45 +123,48 @@ class Grid
                 ty = (y * @tile_h) + @min_y
                 @highlight = {gx:x, gy:y, x:tx, y:ty, w:@tile_w, h:@tile_h, r:255, g:255, b:0, a:128}.solid!
             else
-                # Flag tiles to swap
-                @tiles[[x,y]].sx = h.x
-                @tiles[[x,y]].sy = h.y
-                @tiles[[x,y]].status = :swap
+                t0 = @tiles[[x,y]]
+                t1 = @tiles[[h.gx, h.gy]]
 
-                @tiles[[h.gx,h.gy]].sx = @tiles[[x,y]].x
-                @tiles[[h.gx,h.gy]].sy = @tiles[[x,y]].y
-                @tiles[[h.gx,h.gy]].status = :swap
+                t0.sx = t1.x
+                t0.sy = t1.y
+                t0.status = :swap
+
+                t1.sx = t0.x
+                t1.sy = t0.y
+                t1.status = :swap
                 @swap = [[x,y],[h.gx, h.gy]]
             end
         end
     end
 
     def tick
-        # Tick Tiles
-        @tiles.each {|t| t[1].tick()}
+        if @swap == []
+            # Tick Tiles
+            @tiles.each {|t| t[1].tick()}
 
-        # Get Click
-        clicked_tile = get_click()
+            # Get Click
+            clicked_tile = get_click()
 
-        # Highlight ot Flag Swap
-        if clicked_tile
-            highlight_or_flag(clicked_tile.x, clicked_tile.y)
+            # Highlight ot Flag Swap
+            if clicked_tile
+                highlight_or_flag(clicked_tile.x, clicked_tile.y)
+            end
         end
 
         # Animate Swap
         complete = false
         @swap.each do |s|
             t = @tiles[s]
-            puts t.to_str
             if t.x > t.sx
-                t.x -= 1
+                t.x -= 2
             elsif t.x < t.sx
-                t.x += 1
+                t.x += 2
             end
             if t.y > t.sy
-                t.y -= 1
+                t.y -= 2
             elsif t.y < t.sy
-                t.y += 1
+                t.y += 2
             end
             if t.x == t.sx and t.y == t.sy
                 t.sx = nil
@@ -173,7 +176,7 @@ class Grid
         if complete
             t = @tiles[@swap[0]]
             @tiles[@swap[0]] = @tiles[@swap[1]]
-            @tiles[@swap[0]] = t
+            @tiles[@swap[1]] = t
             @swap = []
             @highlight = false
         end
