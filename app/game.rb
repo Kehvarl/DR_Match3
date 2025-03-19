@@ -166,6 +166,15 @@ class Grid
             elsif t.y < t.sy
                 t.y += 2
             end
+            d = (t.sx - t.x).abs + (t.sy - t.y).abs
+            if d > 40
+                t.w -= 1
+                t.h -= 1
+            elsif d < 40
+                t.w += 1
+                t.h += 1
+            end
+
             if t.x == t.sx and t.y == t.sy
                 t.sx = nil
                 t.sy = nil
