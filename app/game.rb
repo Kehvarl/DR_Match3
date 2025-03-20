@@ -1,6 +1,6 @@
 class Tile
     attr_sprite
-    attr_accessor :sx, :sy, :status
+    attr_accessor :sx, :sy, :status, :name
 
     def initialize vals
         @name = vals.name || "Undefined"
@@ -115,44 +115,7 @@ class Grid
         end
     end
 
-    def highlight_or_flag x, y
-        if @tiles.has_key?([x,y])
-            h = @highlight
-            if (not h) or (not adjacent?({x:x,y:y}, {x:h.gx, y:h.gy}))
-                tx = x * @tile_w
-                ty = (y * @tile_h) + @min_y
-                @highlight = {gx:x, gy:y, x:tx, y:ty, w:@tile_w, h:@tile_h, r:255, g:255, b:0, a:128}.solid!
-            else
-                t0 = @tiles[[x,y]]
-                t1 = @tiles[[h.gx, h.gy]]
-
-                t0.sx = t1.x
-                t0.sy = t1.y
-                t0.status = :swap
-
-                t1.sx = t0.x
-                t1.sy = t0.y
-                t1.status = :swap
-                @swap = [[x,y],[h.gx, h.gy]]
-            end
-        end
-    end
-
-    def tick
-        if @swap == []
-            # Tick Tiles
-            @tiles.each {|t| t[1].tick()}
-
-            # Get Click
-            clicked_tile = get_click()
-
-            # Highlight ot Flag Swap
-            if clicked_tile
-                highlight_or_flag(clicked_tile.x, clicked_tile.y)
-            end
-        end
-
-        # Animate Swap
+    def animate_swap
         complete = false
         @swap.each do |s|
             t = @tiles[s]
@@ -189,8 +152,117 @@ class Grid
             @swap = []
             @highlight = false
         end
+    end
 
-        # Find groups
+    def highlight_or_flag x, y
+        if @tiles.has_key?([x,y])
+            h = @highlight
+            if (not h) or (not adjacent?({x:x,y:y}, {x:h.gx, y:h.gy}))
+                tx = x * @tile_w
+                ty = (y * @tile_h) + @min_y
+                @highlight = {gx:x, gy:y, x:tx, y:ty, w:@tile_w, h:@tile_h, r:255, g:255, b:0, a:128}.solid!
+            else
+                t0 = @tiles[[x,y]]
+                t1 = @tiles[[h.gx, h.gy]]
+
+                t0.sx = t1.x
+                t0.sy = t1.y
+                t0.status = :swap
+
+                t1.sx = t0.x
+                t1.sy = t0.y
+                t1.status = :swap
+                @swap = [[x,y],[h.gx, h.gy]]
+            end
+        end
+    end
+
+    def check_vertical x, y
+        ref = @tiles[[x,y]].name
+        linked = [[x,y]]
+        ty = y +1
+        while ty < @h
+            if @tiles.has_key?([x,ty]) and @tiles[[x,ty]].name == ref
+                linked << [x,ty]
+            else
+                break
+            end
+            ty += 1
+        end
+
+        ty = y -1
+        while ty > 0
+            if @tiles.has_key?([x,ty]) and @tiles[[x,ty]].name == ref
+                linked << [x,ty]
+            else
+                break
+            end
+            ty -= 1
+        end
+        return linked
+    end
+
+    def check_horizontal x, y
+        ref = @tiles[[x,y]].name
+        linked = [x,y]
+        tx = x +1
+        while tx < @w
+            if @tiles.has_key?([tx,y]) and @tiles[[tx,y]].name == ref
+                linked << [tx,y]
+            else
+                break
+            end
+            tx += 1
+        end
+
+        tx = x -1
+        while tx > 0
+            if @tiles.has_key?([tx,y]) and @tiles[[tx,y]].name == ref
+                linked << [tx,y]
+            else
+                break
+            end
+            tx -= 1
+        end
+        return linked
+    end
+
+    def find_groups
+        out = []
+        (0...@h).each do |y|
+            (0...@w).each do |x|
+                if @tiles.has_key?([x,y])
+                    a = check_horizontal(x, y)
+                    b = check_vertical(x, y)
+                    adj = []
+                    if a.size > 3
+                        adj += a
+                    end
+                    if  b.size > 3
+                        adj += b
+                    end
+                    adj = adj.select{ |t| not out.include?(t)}
+                    out += adj
+                end
+            end
+        end
+        out
+    end
+
+    def tick
+        if @swap != []
+            animate_swap
+        end
+        @tiles.each {|t| t[1].tick()}
+
+        clicked_tile = get_click()
+
+        if clicked_tile
+            highlight_or_flag(clicked_tile.x, clicked_tile.y)
+        end
+
+        groups = find_groups
+
         # Flag Groups
         # Animate Remove
         # Find Drops
