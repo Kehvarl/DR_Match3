@@ -77,6 +77,7 @@ class Grid
         @min_y = 480
         @highlight = false
         @swap = []
+        @remove = []
         setup_tiles
 
     end
@@ -204,7 +205,7 @@ class Grid
 
     def check_horizontal x, y
         ref = @tiles[[x,y]].name
-        linked = [x,y]
+        linked = [[x,y]]
         tx = x +1
         while tx < @w
             if @tiles.has_key?([tx,y]) and @tiles[[tx,y]].name == ref
@@ -252,7 +253,23 @@ class Grid
     def tick
         if @swap != []
             animate_swap
+            return
         end
+        if @remove != []
+            next_r = []
+            @remove.each do |r|
+                @tiles[r].w-=1
+                @tiles[r].h-=1
+                if @tiles[r].h <= 0 || @tiles[r].w <= 0
+                    @tiles.delete(r)
+                else
+                    next_r << r
+                end
+            end
+            @remove = next_r.dup
+            return
+        end
+
         @tiles.each {|t| t[1].tick()}
 
         clicked_tile = get_click()
@@ -261,10 +278,10 @@ class Grid
             highlight_or_flag(clicked_tile.x, clicked_tile.y)
         end
 
-        groups = find_groups
-
-        # Flag Groups
-        # Animate Remove
+        @remove = find_groups
+        @remove.each do |r|
+            @tiles[r].status = :remove
+        end
         # Find Drops
         # Flag Drops
         # Animate Drops
