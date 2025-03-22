@@ -1,11 +1,11 @@
 class Tile
     attr_sprite
-    attr_accessor :sx, :sy, :status, :name
+    attr_accessor :tx, :ty, :status, :name
 
     def initialize vals
         @name = vals.name || "Undefined"
-        @sx = nil
-        @sy = nil
+        @tx = nil
+        @ty = nil
         @x = vals.x || 0
         @y = vals.y || 0
         @s = vals.s || 80
@@ -62,7 +62,7 @@ class Tile
     end
 
     def to_str
-        "(#{@x}, #{@y}, #{@w}, #{@h}), #{@status}, (#{@sx}, #{@sy})"
+        "(#{@x}, #{@y}, #{@w}, #{@h}), #{@status}, (#{@tx}, #{@ty})"
     end
 end
 
@@ -78,6 +78,7 @@ class Grid
         @highlight = false
         @swap = []
         @remove = []
+        @drop = []
         setup_tiles
 
     end
@@ -120,17 +121,17 @@ class Grid
         complete = false
         @swap.each do |s|
             t = @tiles[s]
-            if t.x > t.sx
+            if t.x > t.tx
                 t.x -= 2
-            elsif t.x < t.sx
+            elsif t.x < t.tx
                 t.x += 2
             end
-            if t.y > t.sy
+            if t.y > t.ty
                 t.y -= 2
-            elsif t.y < t.sy
+            elsif t.y < t.ty
                 t.y += 2
             end
-            d = (t.sx - t.x).abs + (t.sy - t.y).abs
+            d = (t.tx - t.x).abs + (t.ty - t.y).abs
             if d > 40
                 t.w -= 1
                 t.h -= 1
@@ -139,9 +140,9 @@ class Grid
                 t.h += 1
             end
 
-            if t.x == t.sx and t.y == t.sy
-                t.sx = nil
-                t.sy = nil
+            if t.x == t.tx and t.y == t.ty
+                t.tx = nil
+                t.ty = nil
                 t.status = :idle
                 complete = true
             end
@@ -166,12 +167,12 @@ class Grid
                 t0 = @tiles[[x,y]]
                 t1 = @tiles[[h.gx, h.gy]]
 
-                t0.sx = t1.x
-                t0.sy = t1.y
+                t0.tx = t1.x
+                t0.ty = t1.y
                 t0.status = :swap
 
-                t1.sx = t0.x
-                t1.sy = t0.y
+                t1.tx = t0.x
+                t1.ty = t0.y
                 t1.status = :swap
                 @swap = [[x,y],[h.gx, h.gy]]
             end
@@ -250,13 +251,13 @@ class Grid
         out
     end
 
-    def drop
-        changed = false
+    def find_drops
         (1...@h).each do |y|
             (0...@w).each do |x|
                 if @tiles.has_key?([x,y])
-                    if not @tile.has_key?([x, y-1])
-                        #
+                    if not @tiles.has_key?([x, y-1])
+                        @drop << [x,y]
+                        @tiles[[x,y]].ty = @tiles[[x,y]].y - @tile_h
                     end
                 end
             end
@@ -268,6 +269,7 @@ class Grid
             animate_swap
             return
         end
+
         if @remove != []
             next_r = []
             @remove.each do |r|
@@ -283,6 +285,25 @@ class Grid
             return
         end
 
+        if @drop != []
+            next_d = []
+            @drop.each do |d|
+                if @tiles.has_key?(d)
+                    if @tiles[d].y > @tiles[d].ty
+                        @tiles[d].y -= 2
+                        next_d << d
+                    else
+                        @tiles[d].ty = y
+                        temp = @tiles[d]
+                        @tiles[[d[0], d[1]-1]] = temp
+                        @tiles.delete(d)
+                    end
+                end
+            end
+            @drop = next_d.dup
+            return
+        end
+
         @tiles.each {|t| t[1].tick()}
 
         clicked_tile = get_click()
@@ -295,9 +316,9 @@ class Grid
         @remove.each do |r|
             @tiles[r].status = :remove
         end
-        # Find Drops
-        # Flag Drops
-        # Animate Drops
+
+        find_drops
+
         # Find Shifts
         # Flag Shifts
         # Animate Shifs
