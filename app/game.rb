@@ -250,6 +250,19 @@ class Grid
         out
     end
 
+    def drop
+        changed = false
+        (1...@h).each do |y|
+            (0...@w).each do |x|
+                if @tiles.has_key?([x,y])
+                    if not @tile.has_key?([x, y-1])
+                        #
+                    end
+                end
+            end
+        end
+    end
+
     def tick
         if @swap != []
             animate_swap
