@@ -289,6 +289,9 @@ class Grid
             next_d = []
             @drop.each do |d|
                 if @tiles.has_key?(d)
+                    # If tile can drop, flag it for drop
+                    # TODO: Dont' drop by just 1 tile, calculate how far down to drop
+                    # TODO: All tiles above, drop
                     if @tiles[d].y > @tiles[d].ty
                         @tiles[d].y -= 2
                         next_d << d
@@ -319,9 +322,9 @@ class Grid
 
         find_drops
 
-        # Find Shifts
-        # Flag Shifts
-        # Animate Shifs
+        # Find fill
+        # Generate fill
+        # Drop fill
     end
 
     def render
