@@ -256,6 +256,9 @@ class Grid
             (0...@w).each do |x|
                 if @tiles.has_key?([x,y])
                     if not @tiles.has_key?([x, y-1])
+                        # If tile can drop, flag it for drop
+                        # TODO: Dont' drop by just 1 tile, calculate how far down to drop
+                        # TODO: All tiles above, drop
                         @drop << [x,y]
                         @tiles[[x,y]].ty = @tiles[[x,y]].y - @tile_h
                     end
@@ -289,9 +292,6 @@ class Grid
             next_d = []
             @drop.each do |d|
                 if @tiles.has_key?(d)
-                    # If tile can drop, flag it for drop
-                    # TODO: Dont' drop by just 1 tile, calculate how far down to drop
-                    # TODO: All tiles above, drop
                     if @tiles[d].y > @tiles[d].ty
                         @tiles[d].y -= 2
                         next_d << d
