@@ -258,6 +258,7 @@ class Grid
                     if not @tiles.has_key?([x, y-1])
                         # If tile can drop, flag it for drop
                         # TODO: Dont' drop by just 1 tile, calculate how far down to drop
+
                         @drop << [x,y]
                         dy = @tile_h
                         puts ((y-2)...1)
@@ -269,7 +270,8 @@ class Grid
                                 break
                             end
                         end
-                        @tiles[[x,y]].ty = @tiles[[x,y]].y - dy
+                        @tiles[[x,y]].ty = ()@tiles[[x,y]].y - dy)
+
                         # TODO: All tiles above, drop
 
                     end
