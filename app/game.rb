@@ -1,11 +1,12 @@
 class Tile
     attr_sprite
-    attr_accessor :tx, :ty, :status, :name
+    attr_accessor :tx, :ty, :tgy, :status, :name
 
     def initialize vals
         @name = vals.name || "Undefined"
         @tx = nil
         @ty = nil
+        @tgy = nil
         @x = vals.x || 0
         @y = vals.y || 0
         @s = vals.s || 80
@@ -261,16 +262,19 @@ class Grid
 
                         @drop << [x,y]
                         dy = @tile_h
-                        puts ((y-2)...1)
-                        ((y-2)...1).each do |ty|
+                        tgy = y
+                        (y-2).downto(1).each do |ty|
                             puts ty
                             if not @tiles.has_key?([x,ty])
                                 dy += @tile_h
+                                tgy = ty
                             else
                                 break
                             end
                         end
-                        @tiles[[x,y]].ty = ()@tiles[[x,y]].y - dy)
+                        @tiles[[x,y]].ty = (@tiles[[x,y]].y - dy)
+                        @tiles[[x,y]].tgy = tgy
+
 
                         # TODO: All tiles above, drop
 
@@ -311,7 +315,7 @@ class Grid
                     else
                         @tiles[d].ty = y
                         temp = @tiles[d]
-                        @tiles[[d[0], d[1]-1]] = temp
+                        @tiles[[d[0], temp.tgy]] = temp.dup
                         @tiles.delete(d)
                     end
                 end
