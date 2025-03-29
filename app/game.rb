@@ -262,10 +262,9 @@ class Grid
 
                         @drop << [x,y]
                         dy = @tile_h
-                        tgy = y
+                        tgy = y-1
                         (y-2).downto(1).each do |ty|
-                            puts ty
-                            if not @tiles.has_key?([x,ty])
+                            if not @tiles.has_key?([x,ty]) and ty >=  0
                                 dy += @tile_h
                                 tgy = ty
                             else
