@@ -253,38 +253,32 @@ class Grid
     end
 
     def find_drops
+        drop_tiles = []
+        max_fall = {}
+
         (1...@h).each do |y|
             (0...@w).each do |x|
-                if @tiles.has_key?([x,y]) and not @drop.include?([x,y])
-                    if not @tiles.has_key?([x, y-1])
-                        @drop << [x,y]
-                        dy = @tile_h
-                        tgy = y-1
-                        (y-2).downto(1).each do |ty|
-                            if not @tiles.has_key?([x,ty]) and ty >=  0
-                                dy += @tile_h
-                                tgy = ty
-                            else
-                                break
-                            end
-                        end
-                        @tiles[[x,y]].ty = (@tiles[[x,y]].y - dy)
-                        @tiles[[x,y]].tgy = tgy
+                next unless @tiles.has_key?([x, y]) && !@drop.include?([x, y])
+                next if @tiles.has_key?([x, y - 1])
 
-                        dy -= @tile_h
-                        tgy += 1
-                        (y+1..@h).each do |ty|
-                            if @tiles.has_key?([x,ty])
-                                puts("#{[x,ty]} - #{dy}, #{tgy}")
-                                @drop << [x,ty]
-                                @tiles[[x,ty]].tgy = tgy
-                                tgy += 1
-                                @tiles[[x,ty]].ty = (@tiles[[x,ty]].y - dy)
-                                #dy += @tile_h
-                            end
-                        end
-                    end
+                drop_y = y
+                while drop_y > 0 && !@tiles.has_key?([x, drop_y - 1])
+                    drop_y -= 1
                 end
+
+                fall_distance = (y - drop_y) * @tile_h
+                max_fall[x] = fall_distance if !max_fall[x] || fall_distance > max_fall[x]
+                drop_tiles << [x, y, drop_y, fall_distance]
+            end
+        end
+
+        drop_tiles.each do |x, y, drop_y, fall_distance|
+            stack_y = y
+            while @tiles.has_key?([x, stack_y])
+                @tiles[[x, stack_y]].tgy = drop_y + (stack_y - y)
+                @tiles[[x, stack_y]].ty = @tiles[[x, stack_y]].y - max_fall[x]
+                @drop << [x, stack_y]
+                stack_y += 1
             end
         end
     end
