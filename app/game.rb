@@ -255,11 +255,8 @@ class Grid
     def find_drops
         (1...@h).each do |y|
             (0...@w).each do |x|
-                if @tiles.has_key?([x,y])
+                if @tiles.has_key?([x,y]) and not @drop.include?([x,y])
                     if not @tiles.has_key?([x, y-1])
-                        # If tile can drop, flag it for drop
-                        # TODO: Dont' drop by just 1 tile, calculate how far down to drop
-
                         @drop << [x,y]
                         dy = @tile_h
                         tgy = y-1
@@ -274,9 +271,18 @@ class Grid
                         @tiles[[x,y]].ty = (@tiles[[x,y]].y - dy)
                         @tiles[[x,y]].tgy = tgy
 
-
-                        # TODO: All tiles above, drop
-
+                        dy -= @tile_h
+                        tgy += 1
+                        (y+1..@h).each do |ty|
+                            if @tiles.has_key?([x,ty])
+                                puts("#{[x,ty]} - #{dy}, #{tgy}")
+                                @drop << [x,ty]
+                                @tiles[[x,ty]].tgy = tgy
+                                tgy += 1
+                                @tiles[[x,ty]].ty = (@tiles[[x,ty]].y - dy)
+                                #dy += @tile_h
+                            end
+                        end
                     end
                 end
             end
