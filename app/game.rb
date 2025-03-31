@@ -80,6 +80,7 @@ class Grid
         @swap = []
         @remove = []
         @drop = []
+        @fill = []
         setup_tiles
 
     end
@@ -283,13 +284,25 @@ class Grid
         end
     end
 
+    def fill_tiles
+        (0...@h).each do |y|
+            (0...@w).each do |x|
+                next if @tiles.has_key?([x, y])
+                @fill << [x,y]
+                @tiles[[x, y]] = make_tile(x, y, @min_y, @tile_w, @tile_h, ['green', 'red', 'black', 'blue'].sample)
+                @tiles[[x, y]].w = 0
+                @tiles[[x, y]].h = 0
+            end
+        end
+    end
+
     def tick
-        if @swap != []
+        if @swap.any?
             animate_swap
             return
         end
 
-        if @remove != []
+        if @remove.any?
             next_r = []
             @remove.each do |r|
                 @tiles[r].w-=1
@@ -304,7 +317,7 @@ class Grid
             return
         end
 
-        if @drop != []
+        if @drop.any?
             next_d = []
             @drop.each do |d|
                 if @tiles.has_key?(d)
@@ -323,6 +336,19 @@ class Grid
             return
         end
 
+        if @fill.any?
+            @fill.reject! do |f|
+                @tiles[f].w += 1 if @tiles[f].w < @tile_w
+                @tiles[f].h += 1 if @tiles[f].h < @tile_h
+
+                @tiles[f].w = @tile_w if @tiles[f].w > @tile_w
+                @tiles[f].h = @tile_h if @tiles[f].h > @tile_h
+
+                @tiles[f].w == @tile_w && @tiles[f].h == @tile_h  # Remove when fully grown
+            end
+            return
+        end
+
         @tiles.each {|t| t[1].tick()}
 
         clicked_tile = get_click()
@@ -336,11 +362,16 @@ class Grid
             @tiles[r].status = :remove
         end
 
-        find_drops
+        if @remove.empty? && @drop.empty? && @swap.empty?
+            find_drops
+        end
 
-        # Find fill
-        # Generate fill
-        # Drop fill
+
+        if @remove.empty? && @drop.empty? && @swap.empty?
+            fill_tiles
+        end
+
+
     end
 
     def render
