@@ -77,6 +77,7 @@ class Grid
         @tile_h = 80
         @min_y = 480
         @highlight = false
+        @state = :game
         @swap = []
         @remove = []
         @drop = []
@@ -177,6 +178,7 @@ class Grid
                 t1.ty = t0.y
                 t1.status = :swap
                 @swap = [[x,y],[h.gx, h.gy]]
+                @state = :swap
             end
         end
     end
@@ -296,27 +298,35 @@ class Grid
         end
     end
 
-    def tick
+def tick
+    case @state
+    when :swap
         if @swap.any?
             animate_swap
-            return
+        else
+            @state = :remove
         end
+        return
 
+    when :remove
         if @remove.any?
-            next_r = []
-            @remove.each do |r|
-                @tiles[r].w-=1
-                @tiles[r].h-=1
-                if @tiles[r].h <= 0 || @tiles[r].w <= 0
+            @remove.reject! do |r|
+                @tiles[r].w -= 1
+                @tiles[r].h -= 1
+                if @tiles[r].w <= 0 || @tiles[r].h <= 0
                     @tiles.delete(r)
+                    true
                 else
-                    next_r << r
+                    false
                 end
             end
-            @remove = next_r.dup
-            return
+        else
+            find_drops  # Make sure drops are calculated
+            @state = :drop
         end
+        return if @remove.any?
 
+    when :drop
         if @drop.any?
             next_d = []
             @drop.each do |d|
@@ -325,17 +335,19 @@ class Grid
                         @tiles[d].y -= 2
                         next_d << d
                     else
-                        @tiles[d].ty = y
-                        temp = @tiles[d]
-                        @tiles[[d[0], temp.tgy]] = temp.dup
-                        @tiles.delete(d)
+                        temp = @tiles.delete(d)
+                        @tiles[[d[0], temp.tgy]] = temp.dup if temp
                     end
                 end
             end
             @drop = next_d.dup
-            return
+        else
+            fill_tiles  # Make sure new tiles are generated
+            @state = :fill
         end
+        return if @drop.any?
 
+    when :fill
         if @fill.any?
             @fill.reject! do |f|
                 @tiles[f].w += 1 if @tiles[f].w < @tile_w
@@ -346,33 +358,26 @@ class Grid
 
                 @tiles[f].w == @tile_w && @tiles[f].h == @tile_h  # Remove when fully grown
             end
-            return
+        else
+            @state = :game
         end
+        return if @fill.any?
 
-        @tiles.each {|t| t[1].tick()}
+    when :game
+        @tiles.each_value(&:tick)
 
-        clicked_tile = get_click()
-
-        if clicked_tile
+        if (clicked_tile = get_click())
             highlight_or_flag(clicked_tile.x, clicked_tile.y)
         end
 
         @remove = find_groups
-        @remove.each do |r|
-            @tiles[r].status = :remove
+        if @remove.any?
+            @remove.each { |r| @tiles[r].status = :remove }
+            @state = :remove  # Transition to removal phase
         end
-
-        if @remove.empty? && @drop.empty? && @swap.empty?
-            find_drops
-        end
-
-
-        if @remove.empty? && @drop.empty? && @swap.empty?
-            fill_tiles
-        end
-
-
     end
+end
+
 
     def render
         out = []
