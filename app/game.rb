@@ -1,6 +1,6 @@
 class Tile
     attr_sprite
-    attr_accessor :tx, :ty, :tgy, :status, :name
+    attr_accessor :tx, :ty, :tgy, :status, :name, :default_w, :default_h
 
     def initialize vals
         @name = vals.name || "Undefined"
@@ -350,13 +350,13 @@ def tick
     when :fill
         if @fill.any?
             @fill.reject! do |f|
-                @tiles[f].w += 1 if @tiles[f].w < @tile_w
-                @tiles[f].h += 1 if @tiles[f].h < @tile_h
+                @tiles[f].w += 1 if @tiles[f].w < @tiles[f].default_w
+                @tiles[f].h += 1 if @tiles[f].h < @tiles[f].default_h
 
-                @tiles[f].w = @tile_w if @tiles[f].w > @tile_w
-                @tiles[f].h = @tile_h if @tiles[f].h > @tile_h
+                @tiles[f].w = @tiles[f].default_w if @tiles[f].w > @tiles[f].default_w
+                @tiles[f].h = @tiles[f].default_h if @tiles[f].h > @tiles[f].default_h
 
-                @tiles[f].w == @tile_w && @tiles[f].h == @tile_h  # Remove when fully grown
+                @tiles[f].w == @tiles[f].default_w && @tiles[f].h == @tiles[f].default_h
             end
         else
             @state = :game
@@ -373,7 +373,7 @@ def tick
         @remove = find_groups
         if @remove.any?
             @remove.each { |r| @tiles[r].status = :remove }
-            @state = :remove  # Transition to removal phase
+            @state = :remove
         end
     end
 end
