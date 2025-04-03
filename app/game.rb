@@ -16,6 +16,8 @@ class Tile
         @tile_h = vals.tile_h || 37
         @tile_x = 0
         @tile_y = 0
+        @anchor_x = 0.5
+        @anchor_y = 0.5
         @path = vals.path || "sprites/misc/explosion-0.png"
         @default_w = @w
         @default_h = @h
@@ -82,6 +84,7 @@ class Grid
         @remove = []
         @drop = []
         @fill = []
+        @vy = 5
         setup_tiles
 
     end
@@ -125,14 +128,14 @@ class Grid
         @swap.each do |s|
             t = @tiles[s]
             if t.x > t.tx
-                t.x -= 2
+                t.x -= @vy
             elsif t.x < t.tx
-                t.x += 2
+                t.x += @vy
             end
             if t.y > t.ty
-                t.y -= 2
+                t.y -= @vy
             elsif t.y < t.ty
-                t.y += 2
+                t.y += @vy
             end
             d = (t.tx - t.x).abs + (t.ty - t.y).abs
             if d > 40
@@ -332,7 +335,7 @@ def tick
             @drop.each do |d|
                 if @tiles.has_key?(d)
                     if @tiles[d].y > @tiles[d].ty
-                        @tiles[d].y -= 2
+                        @tiles[d].y -= @vy
                         next_d << d
                     else
                         temp = @tiles.delete(d)
