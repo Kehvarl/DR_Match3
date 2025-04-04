@@ -16,15 +16,14 @@ class Tile
         @tile_h = vals.tile_h || 37
         @tile_x = 0
         @tile_y = 0
-        @anchor_x = 0.5
-        @anchor_y = 0.5
+
         @path = vals.path || "sprites/misc/explosion-0.png"
         @default_w = @w
         @default_h = @h
         @destination_x = @x
         @destinatin_y = @y
         @status = :idle
-        @frames = 8
+        @frames = vals.frames||8
         @current_frame = vals.start_frame || 0
         @frame_delay = vals.frame_delay || 10
         @current_delay = @frame_delay
@@ -90,7 +89,13 @@ class Grid
     end
 
     def make_tile x, y, sy, w, h, name
-        Tile.new({name: name, x:x*w, y:sy+y*h, path:"sprites/potions/bv_#{name}.png", start_frame: rand(7), frame_delay: rand(4) + 4})
+        type = [
+            {name:'bv', tw:22, th:37, frames:8},
+            {name:'gp', tw:24, th:39, frames:12},
+            ].sample()
+        Tile.new({name: type.name + name, x:x*w, y:sy+y*h, path:"sprites/potions/#{type.name}_#{name}.png",
+                  tile_h:type.th, tile_w:type.tw,
+                  frames:type.frames, start_frame: rand(7), frame_delay: rand(4) + 4})
     end
 
     def setup_tiles
@@ -302,6 +307,7 @@ class Grid
     end
 
 def tick
+    @tiles.each_value(&:tick)
     case @state
     when :swap
         if @swap.any?
@@ -367,8 +373,6 @@ def tick
         return if @fill.any?
 
     when :game
-        @tiles.each_value(&:tick)
-
         if (clicked_tile = get_click())
             highlight_or_flag(clicked_tile.x, clicked_tile.y)
         end
