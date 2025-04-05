@@ -1,4 +1,5 @@
-# DR Match 3
+# Potion Sort
+Organize the potions to make room for new ones!
 A match-3 game in DragonRuby GTK
 
 Part of Kehvarl's Game-A-Month personal challenge.
