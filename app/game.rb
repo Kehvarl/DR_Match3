@@ -1,6 +1,6 @@
 class Tile
     attr_sprite
-    attr_accessor :tx, :ty, :tgy, :status, :name, :default_w, :default_h
+    attr_accessor :start_x, :start_y, :tx, :ty, :tgy, :status, :name, :default_w, :default_h
 
     def initialize vals
         @name = vals.name || "Undefined"
@@ -9,6 +9,8 @@ class Tile
         @tgy = nil
         @x = vals.x || 0
         @y = vals.y || 0
+        @start_x = @x
+        @start_y = @y
         @s = vals.s || 80
         @w = vals.w || 50
         @h = vals.h || 74
@@ -41,22 +43,12 @@ class Tile
         end
     end
 
-    def swap_left
-    end
-
-    def swap_right
-    end
-
-    def swap_up
-    end
-
-    def swap_down
-    end
-
-    def slide_right
-    end
-
-    def fall_down
+    def swap_setup tx, ty
+        @tx = tx
+        @ty = ty
+        @start_x = @x
+        @start_y = @y
+        @status = :swap
     end
 
     def tick
@@ -80,6 +72,7 @@ class Grid
         @highlight = false
         @state = :game
         @swap = []
+        @swap_tick = 0
         @remove = []
         @drop = []
         @fill = []
@@ -129,40 +122,58 @@ class Grid
     end
 
     def animate_swap
-        complete = false
-        @swap.each do |s|
-            t = @tiles[s]
-            if t.x > t.tx
-                t.x -= @vy
-            elsif t.x < t.tx
-                t.x += @vy
-            end
-            if t.y > t.ty
-                t.y -= @vy
-            elsif t.y < t.ty
-                t.y += @vy
-            end
-            d = (t.tx - t.x).abs + (t.ty - t.y).abs
-            if d > 40
-                t.w -= 1
-                t.h -= 1
-            elsif d < 40
-                t.w += 1
-                t.h += 1
+        return if @swap.empty?
+
+        # Only initialize on first frame of swap
+        @swap_tick ||= 0
+        duration = 40.0
+
+        perc = Easing.smooth_step(initial: 0, final: 1, perc: @swap_tick / duration, power: 2)
+
+        complete = true
+
+        @swap.each do |pos|
+            tile = @tiles[pos]
+            next unless tile
+
+            tile.x = Easing.smooth_step(initial: tile.start_x, final: tile.tx, perc: perc, power: 2)
+            tile.y = Easing.smooth_step(initial: tile.start_y, final: tile.ty, perc: perc, power: 2)
+
+
+            if perc < 0.5
+                scale = Easing.smooth_stop(initial: 1.0, final: 0.8, perc: perc * 2, power: 2)
+            else
+                scale = Easing.smooth_start(initial: 0.8, final: 1.0, perc: (perc - 0.5) * 2, power: 2)
             end
 
-            if t.x == t.tx and t.y == t.ty
-                t.tx = nil
-                t.ty = nil
-                t.status = :idle
-                complete = true
-            end
+
+            tile.w = (tile.default_w * scale).round
+            tile.h = (tile.default_h * scale).round
+
+            complete = false if (tile.x - tile.tx).abs > 1 || (tile.y - tile.ty).abs > 1
         end
-        if complete
-            t = @tiles[@swap[0]]
-            @tiles[@swap[0]] = @tiles[@swap[1]]
-            @tiles[@swap[1]] = t
+
+        @swap_tick += 1
+
+        if complete || @swap_tick >= duration
+            pos1, pos2 = @swap
+            @tiles[pos1], @tiles[pos2] = @tiles[pos2], @tiles[pos1]
+
+            [pos1, pos2].each do |pos|
+                tile = @tiles[pos]
+                tile.x = tile.tx
+                tile.y = tile.ty
+                tile.tx = nil
+                tile.ty = nil
+                tile.start_x = tile.x
+                tile.start_y = tile.y
+                tile.w = tile.default_w
+                tile.h = tile.default_h
+                tile.status = :idle
+            end
+
             @swap = []
+            @swap_tick = 0
             @highlight = false
         end
     end
@@ -178,14 +189,11 @@ class Grid
                 t0 = @tiles[[x,y]]
                 t1 = @tiles[[h.gx, h.gy]]
 
-                t0.tx = t1.x
-                t0.ty = t1.y
-                t0.status = :swap
+                t0.swap_setup t1.x, t1.y
+                t1.swap_setup t0.x, t0.y
 
-                t1.tx = t0.x
-                t1.ty = t0.y
-                t1.status = :swap
                 @swap = [[x,y],[h.gx, h.gy]]
+                @swap_tick = 0
                 @state = :swap
             end
         end
