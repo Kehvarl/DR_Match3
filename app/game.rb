@@ -314,84 +314,85 @@ class Grid
         end
     end
 
-def tick
-    @tiles.each_value(&:tick)
-    case @state
-    when :swap
-        if @swap.any?
-            animate_swap
-        else
-            @state = :remove
-        end
-        return
+    def tick
+        @tiles.each {|t| t.tick}
 
-    when :remove
-        if @remove.any?
-            @remove.reject! do |r|
-                @tiles[r].w -= 1
-                @tiles[r].h -= 1
-                if @tiles[r].w <= 0 || @tiles[r].h <= 0
-                    @tiles.delete(r)
-                    true
-                else
-                    false
-                end
+        case @state
+        when :swap
+            if @swap.any?
+                animate_swap
+            else
+                @state = :remove
             end
-        else
-            find_drops  # Make sure drops are calculated
-            @state = :drop
-        end
-        return if @remove.any?
+            return
 
-    when :drop
-        if @drop.any?
-            next_d = []
-            @drop.each do |d|
-                if @tiles.has_key?(d)
-                    if @tiles[d].y > @tiles[d].ty
-                        @tiles[d].y -= @vy
-                        next_d << d
+        when :remove
+            if @remove.any?
+                @remove.reject! do |r|
+                    @tiles[r].w -= 1
+                    @tiles[r].h -= 1
+                    if @tiles[r].w <= 0 || @tiles[r].h <= 0
+                        @tiles.delete(r)
+                        true
                     else
-                        temp = @tiles.delete(d)
-                        @tiles[[d[0], temp.tgy]] = temp.dup if temp
+                        false
                     end
                 end
+            else
+                find_drops
+                @state = :drop
             end
-            @drop = next_d.dup
-        else
-            fill_tiles  # Make sure new tiles are generated
-            @state = :fill
-        end
-        return if @drop.any?
+            return if @remove.any?
 
-    when :fill
-        if @fill.any?
-            @fill.reject! do |f|
-                @tiles[f].w += 1 if @tiles[f].w < @tiles[f].default_w
-                @tiles[f].h += 1 if @tiles[f].h < @tiles[f].default_h
-
-                @tiles[f].w = @tiles[f].default_w if @tiles[f].w > @tiles[f].default_w
-                @tiles[f].h = @tiles[f].default_h if @tiles[f].h > @tiles[f].default_h
-
-                @tiles[f].w == @tiles[f].default_w && @tiles[f].h == @tiles[f].default_h
+        when :drop
+            if @drop.any?
+                next_d = []
+                @drop.each do |d|
+                    if @tiles.has_key?(d)
+                        if @tiles[d].y > @tiles[d].ty
+                            @tiles[d].y -= @vy
+                            next_d << d
+                        else
+                            temp = @tiles.delete(d)
+                            @tiles[[d[0], temp.tgy]] = temp.dup if temp
+                        end
+                    end
+                end
+                @drop = next_d.dup
+            else
+                fill_tiles
+                @state = :fill
             end
-        else
-            @state = :game
-        end
-        return if @fill.any?
+            return if @drop.any?
 
-    when :game
-        if (clicked_tile = get_click())
-            highlight_or_flag(clicked_tile.x, clicked_tile.y)
-        end
+        when :fill
+            if @fill.any?
+                @fill.reject! do |f|
+                    @tiles[f].w += 1 if @tiles[f].w < @tiles[f].default_w
+                    @tiles[f].h += 1 if @tiles[f].h < @tiles[f].default_h
 
-        @remove = find_groups
-        if @remove.any?
-            @remove.each { |r| @tiles[r].status = :remove }
-            @state = :remove
+                    @tiles[f].w = @tiles[f].default_w if @tiles[f].w > @tiles[f].default_w
+                    @tiles[f].h = @tiles[f].default_h if @tiles[f].h > @tiles[f].default_h
+
+                    @tiles[f].w == @tiles[f].default_w && @tiles[f].h == @tiles[f].default_h
+                end
+            else
+                @state = :game
+            end
+            return if @fill.any?
+
+        when :game
+            if (clicked_tile = get_click())
+                highlight_or_flag(clicked_tile.x, clicked_tile.y)
+            end
+
+            @remove = find_groups
+            if @remove.any?
+                @remove.each { |r| @tiles[r].status = :remove }
+                @state = :remove
+            end
         end
     end
-end
 
 
     def render
