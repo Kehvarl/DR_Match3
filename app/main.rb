@@ -1,3 +1,4 @@
+require '/app/tile.rb'
 require '/app/game.rb'
 
 def init args

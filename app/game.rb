@@ -1,64 +1,4 @@
-class Tile
-    attr_sprite
-    attr_accessor :start_x, :start_y, :tx, :ty, :tgy, :status, :name, :default_w, :default_h
-
-    def initialize vals
-        @name = vals.name || "Undefined"
-        @tx = nil
-        @ty = nil
-        @tgy = nil
-        @x = vals.x || 0
-        @y = vals.y || 0
-        @start_x = @x
-        @start_y = @y
-        @s = vals.s || 80
-        @w = vals.w || 50
-        @h = vals.h || 74
-        @tile_w = vals.tile_w || 22
-        @tile_h = vals.tile_h || 37
-        @tile_x = 0
-        @tile_y = 0
-
-        @path = vals.path || "sprites/misc/explosion-0.png"
-        @default_w = @w
-        @default_h = @h
-        @destination_x = @x
-        @destinatin_y = @y
-        @status = :idle
-        @frames = vals.frames||8
-        @current_frame = vals.start_frame || 0
-        @frame_delay = vals.frame_delay || 10
-        @current_delay = @frame_delay
-        @x += (@s - @w).div(2)
-
-
-    end
-
-    def idle
-        @current_delay -= 1
-        if @current_delay <= 0
-            @current_delay = @frame_delay
-            @current_frame = (@current_frame + 1)%@frames
-            @tile_x = @tile_w * @current_frame
-        end
-    end
-
-    def swap_setup tx, ty
-        @tx = tx
-        @ty = ty
-        @start_x = @x
-        @start_y = @y
-        @status = :swap
-    end
-
-    def tick
-        idle()
-    end
-
-    def to_str
-        "(#{@x}, #{@y}, #{@w}, #{@h}), #{@status}, (#{@tx}, #{@ty})"
-    end
-end
+require '/app/tile.rb'
 
 class Grid
     def initialize args
@@ -123,9 +63,6 @@ class Grid
 
     def animate_swap
         return if @swap.empty?
-
-        # Only initialize on first frame of swap
-        @swap_tick ||= 0
         duration = 40.0
 
         perc = Easing.smooth_step(initial: 0, final: 1, perc: @swap_tick / duration, power: 2)
@@ -302,6 +239,22 @@ class Grid
         end
     end
 
+    def process_drops
+        next_d = []
+        @drop.each do |d|
+            if @tiles.has_key?(d)
+                if @tiles[d].y > @tiles[d].ty
+                    @tiles[d].y -= @vy
+                    next_d << d
+                else
+                    temp = @tiles.delete(d)
+                    @tiles[[d[0], temp.tgy]] = temp.dup if temp
+                end
+            end
+        end
+        @drop = next_d.dup
+    end
+
     def fill_tiles
         (0...@h).each do |y|
             (0...@w).each do |x|
@@ -315,7 +268,7 @@ class Grid
     end
 
     def tick
-        @tiles.each {|t| t.tick}
+        @tiles.each {|t| t[1].tick}
 
         case @state
         when :swap
@@ -346,19 +299,7 @@ class Grid
 
         when :drop
             if @drop.any?
-                next_d = []
-                @drop.each do |d|
-                    if @tiles.has_key?(d)
-                        if @tiles[d].y > @tiles[d].ty
-                            @tiles[d].y -= @vy
-                            next_d << d
-                        else
-                            temp = @tiles.delete(d)
-                            @tiles[[d[0], temp.tgy]] = temp.dup if temp
-                        end
-                    end
-                end
-                @drop = next_d.dup
+                process_drops
             else
                 fill_tiles
                 @state = :fill
