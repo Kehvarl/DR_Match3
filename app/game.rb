@@ -3,6 +3,7 @@ require '/app/tile.rb'
 class Grid
     def initialize args
         @mouse = args.inputs.mouse
+        @args = args
         @tiles = {}
         @w = 9
         @h = 9
@@ -14,8 +15,10 @@ class Grid
         @swap = []
         @swap_tick = 0
         @remove = []
+        @remove_start = 0
         @drop = []
         @fill = []
+        @fill_start = 0
         @vy = 5
         setup_tiles
 
@@ -263,6 +266,7 @@ class Grid
                 @tiles[[x, y]] = make_tile(x, y, @min_y, @tile_w, @tile_h, ['green', 'red', 'black', 'blue'].sample)
                 @tiles[[x, y]].w = 0
                 @tiles[[x, y]].h = 0
+                @fill_start = @args.tick_count
             end
         end
     end
@@ -282,8 +286,11 @@ class Grid
         when :remove
             if @remove.any?
                 @remove.reject! do |r|
-                    @tiles[r].w -= 1
-                    @tiles[r].h -= 1
+                   scale = Easing.smooth_stop(start_at: @remove_start, end_at: @remove_start+60,
+                                            tick_count: @args.state.clock, power: 5)
+
+                    @tiles[r].w = (@tiles[r].default_w * (1-scale)).round
+                    @tiles[r].h = (@tiles[r].default_h * (1-scale)).round
                     if @tiles[r].w <= 0 || @tiles[r].h <= 0
                         @tiles.delete(r)
                         true
@@ -309,11 +316,12 @@ class Grid
         when :fill
             if @fill.any?
                 @fill.reject! do |f|
-                    @tiles[f].w += 1 if @tiles[f].w < @tiles[f].default_w
-                    @tiles[f].h += 1 if @tiles[f].h < @tiles[f].default_h
 
-                    @tiles[f].w = @tiles[f].default_w if @tiles[f].w > @tiles[f].default_w
-                    @tiles[f].h = @tiles[f].default_h if @tiles[f].h > @tiles[f].default_h
+                    scale = Easing.smooth_stop(start_at: @fill_start, end_at: @fill_start+30,
+                                            tick_count: @args.state.clock, power: 2)
+
+                    @tiles[f].w = (@tiles[f].default_w * scale).round
+                    @tiles[f].h = (@tiles[f].default_h * scale).round
 
                     @tiles[f].w == @tiles[f].default_w && @tiles[f].h == @tiles[f].default_h
                 end
@@ -329,6 +337,7 @@ class Grid
 
             @remove = find_groups
             if @remove.any?
+                @remove_start = @args.tick_count
                 @remove.each { |r| @tiles[r].status = :remove }
                 @state = :remove
             end
