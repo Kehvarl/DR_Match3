@@ -2,6 +2,7 @@ require '/app/tile.rb'
 
 class Grid
     def initialize args
+        @score = 0
         @mouse = args.inputs.mouse
         @args = args
         @tiles = {}
@@ -17,6 +18,7 @@ class Grid
         @remove = []
         @remove_start = 0
         @drop = []
+        @drop_tick = 0
         @fill = []
         @fill_start = 0
         @vy = 5
@@ -244,8 +246,10 @@ class Grid
 
     def process_drops
         next_d = []
+
         @drop.each do |d|
             if @tiles.has_key?(d)
+
                 if @tiles[d].y > @tiles[d].ty
                     @tiles[d].y -= @vy
                     next_d << d
@@ -287,11 +291,12 @@ class Grid
             if @remove.any?
                 @remove.reject! do |r|
                    scale = Easing.smooth_stop(start_at: @remove_start, end_at: @remove_start+60,
-                                            tick_count: @args.state.clock, power: 5)
+                                            tick_count: @args.state.clock, power: 2)
 
                     @tiles[r].w = (@tiles[r].default_w * (1-scale)).round
                     @tiles[r].h = (@tiles[r].default_h * (1-scale)).round
                     if @tiles[r].w <= 0 || @tiles[r].h <= 0
+                        @score += @tiles[r].score
                         @tiles.delete(r)
                         true
                     else

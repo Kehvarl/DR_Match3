@@ -1,9 +1,10 @@
 class Tile
     attr_sprite
-    attr_accessor :start_x, :start_y, :tx, :ty, :tgy, :status, :name, :default_w, :default_h
+    attr_accessor :start_x, :start_y, :tx, :ty, :tgy, :status, :name, :score, :default_w, :default_h
 
     def initialize vals
         @name = vals.name || "Undefined"
+        @score = vals.score || 10
         @tx = nil
         @ty = nil
         @tgy = nil
