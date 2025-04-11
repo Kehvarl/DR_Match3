@@ -275,65 +275,82 @@ class Grid
         end
     end
 
+    def swap_tick
+        if @swap.any?
+            animate_swap
+        else
+            @state = :remove
+        end
+    end
+
+    def remove_tick
+        if @remove.any?
+            @remove.reject! do |r|
+                scale = Easing.smooth_stop(start_at: @remove_start, end_at: @remove_start+60,
+                                        tick_count: @args.state.clock, power: 2)
+
+                @tiles[r].w = (@tiles[r].default_w * (1-scale)).round
+                @tiles[r].h = (@tiles[r].default_h * (1-scale)).round
+                if @tiles[r].w <= 0 || @tiles[r].h <= 0
+                    @score += @tiles[r].score
+                    @tiles.delete(r)
+                    true
+                else
+                    false
+                end
+            end
+        else
+            find_drops
+            @state = :drop
+        end
+    end
+
+    def drop_tick
+        if @drop.any?
+            process_drops
+        else
+            fill_tiles
+            @state = :fill
+        end
+    end
+
+    def fill_tick
+        if @fill.any?
+            @fill.reject! do |f|
+
+                scale = Easing.smooth_stop(start_at: @fill_start, end_at: @fill_start+30,
+                                        tick_count: @args.state.clock, power: 2)
+
+                @tiles[f].w = (@tiles[f].default_w * scale).round
+                @tiles[f].h = (@tiles[f].default_h * scale).round
+
+                @tiles[f].w == @tiles[f].default_w && @tiles[f].h == @tiles[f].default_h
+            end
+        else
+            @state = :game
+        end
+    end
+
+
     def tick
         @tiles.each {|t| t[1].tick}
 
         case @state
         when :swap
-            if @swap.any?
-                animate_swap
-            else
-                @state = :remove
-            end
+            swap_tick
             return
 
         when :remove
-            if @remove.any?
-                @remove.reject! do |r|
-                   scale = Easing.smooth_stop(start_at: @remove_start, end_at: @remove_start+60,
-                                            tick_count: @args.state.clock, power: 2)
-
-                    @tiles[r].w = (@tiles[r].default_w * (1-scale)).round
-                    @tiles[r].h = (@tiles[r].default_h * (1-scale)).round
-                    if @tiles[r].w <= 0 || @tiles[r].h <= 0
-                        @score += @tiles[r].score
-                        @tiles.delete(r)
-                        true
-                    else
-                        false
-                    end
-                end
-            else
-                find_drops
-                @state = :drop
-            end
-            return if @remove.any?
+            remove_tick
+            return
 
         when :drop
-            if @drop.any?
-                process_drops
-            else
-                fill_tiles
-                @state = :fill
-            end
-            return if @drop.any?
+            drop_tick
+            return
 
         when :fill
-            if @fill.any?
-                @fill.reject! do |f|
-
-                    scale = Easing.smooth_stop(start_at: @fill_start, end_at: @fill_start+30,
-                                            tick_count: @args.state.clock, power: 2)
-
-                    @tiles[f].w = (@tiles[f].default_w * scale).round
-                    @tiles[f].h = (@tiles[f].default_h * scale).round
-
-                    @tiles[f].w == @tiles[f].default_w && @tiles[f].h == @tiles[f].default_h
-                end
-            else
-                @state = :game
-            end
-            return if @fill.any?
+            fill_tick
+            return
 
         when :game
             if (clicked_tile = get_click())
@@ -348,7 +365,6 @@ class Grid
             end
         end
     end
-
 
     def render
         out = []
