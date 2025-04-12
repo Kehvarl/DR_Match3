@@ -67,56 +67,59 @@ class Grid
     end
 
     def animate_swap
-        return if @swap.empty?
-        duration = 40.0
+        if @swap.any?
+            duration = 40.0
 
-        perc = Easing.smooth_step(initial: 0, final: 1, perc: @swap_tick / duration, power: 2)
+            perc = Easing.smooth_step(initial: 0, final: 1, perc: @swap_tick / duration, power: 2)
 
-        complete = true
+            complete = true
 
-        @swap.each do |pos|
-            tile = @tiles[pos]
-            next unless tile
-
-            tile.x = Easing.smooth_step(initial: tile.start_x, final: tile.tx, perc: perc, power: 2)
-            tile.y = Easing.smooth_step(initial: tile.start_y, final: tile.ty, perc: perc, power: 2)
-
-
-            if perc < 0.5
-                scale = Easing.smooth_stop(initial: 1.0, final: 0.8, perc: perc * 2, power: 2)
-            else
-                scale = Easing.smooth_start(initial: 0.8, final: 1.0, perc: (perc - 0.5) * 2, power: 2)
-            end
-
-
-            tile.w = (tile.default_w * scale).round
-            tile.h = (tile.default_h * scale).round
-
-            complete = false if (tile.x - tile.tx).abs > 1 || (tile.y - tile.ty).abs > 1
-        end
-
-        @swap_tick += 1
-
-        if complete || @swap_tick >= duration
-            pos1, pos2 = @swap
-            @tiles[pos1], @tiles[pos2] = @tiles[pos2], @tiles[pos1]
-
-            [pos1, pos2].each do |pos|
+            @swap.each do |pos|
                 tile = @tiles[pos]
-                tile.x = tile.tx
-                tile.y = tile.ty
-                tile.tx = nil
-                tile.ty = nil
-                tile.start_x = tile.x
-                tile.start_y = tile.y
-                tile.w = tile.default_w
-                tile.h = tile.default_h
-                tile.status = :idle
+                next unless tile
+
+                tile.x = Easing.smooth_step(initial: tile.start_x, final: tile.tx, perc: perc, power: 2)
+                tile.y = Easing.smooth_step(initial: tile.start_y, final: tile.ty, perc: perc, power: 2)
+
+
+                if perc < 0.5
+                    scale = Easing.smooth_stop(initial: 1.0, final: 0.8, perc: perc * 2, power: 2)
+                else
+                    scale = Easing.smooth_start(initial: 0.8, final: 1.0, perc: (perc - 0.5) * 2, power: 2)
+                end
+
+
+                tile.w = (tile.default_w * scale).round
+                tile.h = (tile.default_h * scale).round
+
+                complete = false if (tile.x - tile.tx).abs > 1 || (tile.y - tile.ty).abs > 1
             end
 
-            @swap = []
-            @swap_tick = 0
-            @highlight = false
+            @swap_tick += 1
+
+            if complete || @swap_tick >= duration
+                pos1, pos2 = @swap
+                @tiles[pos1], @tiles[pos2] = @tiles[pos2], @tiles[pos1]
+
+                [pos1, pos2].each do |pos|
+                    tile = @tiles[pos]
+                    tile.x = tile.tx
+                    tile.y = tile.ty
+                    tile.tx = nil
+                    tile.ty = nil
+                    tile.start_x = tile.x
+                    tile.start_y = tile.y
+                    tile.w = tile.default_w
+                    tile.h = tile.default_h
+                    tile.status = :idle
+                end
+
+                @swap = []
+                @swap_tick = 0
+                @highlight = false
+            end
+        else
+            @state = :remove
         end
     end
 
@@ -244,45 +247,6 @@ class Grid
         end
     end
 
-    def process_drops
-        next_d = []
-
-        @drop.each do |d|
-            if @tiles.has_key?(d)
-
-                if @tiles[d].y > @tiles[d].ty
-                    @tiles[d].y -= @vy
-                    next_d << d
-                else
-                    temp = @tiles.delete(d)
-                    @tiles[[d[0], temp.tgy]] = temp.dup if temp
-                end
-            end
-        end
-        @drop = next_d.dup
-    end
-
-    def fill_tiles
-        (0...@h).each do |y|
-            (0...@w).each do |x|
-                next if @tiles.has_key?([x, y])
-                @fill << [x,y]
-                @tiles[[x, y]] = make_tile(x, y, @min_y, @tile_w, @tile_h, ['green', 'red', 'black', 'blue'].sample)
-                @tiles[[x, y]].w = 0
-                @tiles[[x, y]].h = 0
-                @fill_start = @args.tick_count
-            end
-        end
-    end
-
-    def swap_tick
-        if @swap.any?
-            animate_swap
-        else
-            @state = :remove
-        end
-    end
-
     def remove_tick
         if @remove.any?
             @remove.reject! do |r|
@@ -307,9 +271,31 @@ class Grid
 
     def drop_tick
         if @drop.any?
-            process_drops
+            next_d = []
+            @drop.each do |d|
+                if @tiles.has_key?(d)
+
+                    if @tiles[d].y > @tiles[d].ty
+                        @tiles[d].y -= @vy
+                        next_d << d
+                    else
+                        temp = @tiles.delete(d)
+                        @tiles[[d[0], temp.tgy]] = temp.dup if temp
+                    end
+                end
+            end
+            @drop = next_d.dup
         else
-            fill_tiles
+            (0...@h).each do |y|
+                (0...@w).each do |x|
+                    next if @tiles.has_key?([x, y])
+                    @fill << [x,y]
+                    @tiles[[x, y]] = make_tile(x, y, @min_y, @tile_w, @tile_h, ['green', 'red', 'black', 'blue'].sample)
+                    @tiles[[x, y]].w = 0
+                    @tiles[[x, y]].h = 0
+                    @fill_start = @args.tick_count
+                end
+            end
             @state = :fill
         end
     end
@@ -337,7 +323,7 @@ class Grid
 
         case @state
         when :swap
-            swap_tick
+            animate_swap
             return
 
         when :remove
