@@ -134,8 +134,8 @@ class Grid
                 t0 = @tiles[[x,y]]
                 t1 = @tiles[[h.gx, h.gy]]
 
-                t0.swap_setup t1.x, t1.y
-                t1.swap_setup t0.x, t0.y
+                t0.start_swap_to(t1.x, t1.y)
+                t1.start_swap_to(t0.x, t0.y)
 
                 @swap = [[x,y],[h.gx, h.gy]]
                 @swap_tick = 0
@@ -339,20 +339,12 @@ class Grid
         case @state
         when :swap
             animate_swap
-            return
-
         when :remove
             remove_tick
-            return
-
         when :drop
             drop_tick
-            return
-
         when :fill
             fill_tick
-            return
-
         when :game
             if (clicked_tile = get_click())
                 highlight_or_flag(clicked_tile.x, clicked_tile.y)
@@ -366,6 +358,7 @@ class Grid
             end
         end
     end
+
 
     def render
         out = []
