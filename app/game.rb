@@ -256,7 +256,11 @@ class Grid
                 @tiles[r].w = (@tiles[r].default_w * (1-scale)).round
                 @tiles[r].h = (@tiles[r].default_h * (1-scale)).round
                 if @tiles[r].w <= 0 || @tiles[r].h <= 0
-                    @score += @tiles[r].score
+                    score = @tiles[r].score
+                    if @remove.size > 4
+                        score += (@remove.size - 4) * 20
+                    end
+                    @score += score
                     @tiles.delete(r)
                     true
                 else
@@ -360,6 +364,7 @@ class Grid
         if @highlight
             out << @highlight
         end
+        out << {x:0, y:@min_y - 50, size_enum:5, text:"Score: #{@score}", r:255, g:255, b:255}.label!
         out
     end
 end
