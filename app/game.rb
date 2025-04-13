@@ -241,6 +241,8 @@ class Grid
             while @tiles.has_key?([x, stack_y])
                 @tiles[[x, stack_y]].tgy = drop_y + (stack_y - y)
                 @tiles[[x, stack_y]].ty = @tiles[[x, stack_y]].y - max_fall[x]
+                @tiles[[x, stack_y]].start_y = @tiles[[x, stack_y]].y
+                @tiles[[x, stack_y]].ease_tick = @args.tick_count
                 @drop << [x, stack_y]
                 stack_y += 1
             end
@@ -256,7 +258,11 @@ class Grid
                 @tiles[r].w = (@tiles[r].default_w * (1-scale)).round
                 @tiles[r].h = (@tiles[r].default_h * (1-scale)).round
                 if @tiles[r].w <= 0 || @tiles[r].h <= 0
-                    @score += @tiles[r].score
+                    score = @tiles[r].score
+                    if @remove.size > 4
+                        score += (@remove.size - 4) * 20
+                    end
+                    @score += score
                     @tiles.delete(r)
                     true
                 else
@@ -274,13 +280,22 @@ class Grid
             next_d = []
             @drop.each do |d|
                 if @tiles.has_key?(d)
+                    perc = (@args.tick_count - @tiles[d].ease_tick) / 30
+                    perc = 1.0 if perc > 1.0
 
-                    if @tiles[d].y > @tiles[d].ty
-                        @tiles[d].y -= @vy
+                    @tiles[d].y = Easing.smooth_step(initial: @tiles[d].start_y,
+                                                     final: @tiles[d].ty,
+                                                     perc: perc, power: 2)
+
+                    if perc < 1.0
                         next_d << d
                     else
-                        temp = @tiles.delete(d)
-                        @tiles[[d[0], temp.tgy]] = temp.dup if temp
+                        new_pos = [d[0], @tiles[d].tgy]
+                        @tiles[d].y = @tiles[d].ty
+                        @tiles[d].tx = @tiles[d].ty = @tiles[d].tgy = @tiles[d].start_y = @tiles[d].ease_tick = nil
+                        temp = @tiles[d]
+                        @tiles.delete(d)
+                        @tiles[new_pos] = temp
                     end
                 end
             end
@@ -360,6 +375,7 @@ class Grid
         if @highlight
             out << @highlight
         end
+        out << {x:0, y:@min_y - 50, size_enum:5, text:"Score: #{@score}", r:255, g:255, b:255}.label!
         out
     end
 end
