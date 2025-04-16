@@ -309,7 +309,7 @@ class Grid
 
         case @state
         when :swap
-            #animate_swap
+            animate_swap
         when :remove
             #remove_tick
         when :drop
