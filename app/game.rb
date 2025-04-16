@@ -68,37 +68,8 @@ class Grid
 
     def animate_swap
         if @swap.any?
-            duration = 40.0
-
-            perc = Easing.smooth_step(initial: 0, final: 1, perc: @swap_tick / duration, power: 2)
-
-            complete = true
-
-            @swap.each do |pos|
-                tile = @tiles[pos]
-                next unless tile
-
-                tile.x = Easing.smooth_step(initial: tile.start_x, final: tile.tx, perc: perc, power: 2)
-                tile.y = Easing.smooth_step(initial: tile.start_y, final: tile.ty, perc: perc, power: 2)
-
-
-                if perc < 0.5
-                    scale = Easing.smooth_stop(initial: 1.0, final: 0.8, perc: perc * 2, power: 2)
-                else
-                    scale = Easing.smooth_start(initial: 0.8, final: 1.0, perc: (perc - 0.5) * 2, power: 2)
-                end
-
-
-                tile.w = (tile.default_w * scale).round
-                tile.h = (tile.default_h * scale).round
-
-                complete = false if (tile.x - tile.tx).abs > 1 || (tile.y - tile.ty).abs > 1
-            end
-
-            @swap_tick += 1
-
-            if complete || @swap_tick >= duration
-                pos1, pos2 = @swap
+            pos1, pos2 = @swap
+            if @tiles[pos1].status == :idle and @tiles[pos2].status == :idle
                 @tiles[pos1], @tiles[pos2] = @tiles[pos2], @tiles[pos1]
 
                 [pos1, pos2].each do |pos|
@@ -338,9 +309,9 @@ class Grid
 
         case @state
         when :swap
-            animate_swap
+            #animate_swap
         when :remove
-            remove_tick
+            #remove_tick
         when :drop
             drop_tick
         when :fill

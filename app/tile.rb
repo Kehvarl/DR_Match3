@@ -11,14 +11,12 @@ class Tile
         @y = vals.y || 0
         @start_x = @x
         @start_y = @y
-
         @ease_tick = 0
         @s = vals.s || 80
         @w = vals.w || 50
         @h = vals.h || 74
         @tile_w = vals.tile_w || 22
         @tile_h = vals.tile_h || 37
-
         @tile_x = 0
         @tile_y = 0
 
@@ -75,7 +73,7 @@ class Tile
 
     def animate_to(target_x, target_y, type, axis: :both)
         @ease_tick += 1
-        duration = 10
+        duration = 30
         if @ease_tick >= duration
             @x = target_x if axis == :x || axis == :both
             @y = target_y if axis == :y || axis == :both
