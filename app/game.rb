@@ -66,34 +66,6 @@ class Grid
         end
     end
 
-    def animate_swap
-        if @swap.any?
-            pos1, pos2 = @swap
-            if @tiles[pos1].status == :idle and @tiles[pos2].status == :idle
-                @tiles[pos1], @tiles[pos2] = @tiles[pos2], @tiles[pos1]
-
-                [pos1, pos2].each do |pos|
-                    tile = @tiles[pos]
-                    tile.x = tile.tx
-                    tile.y = tile.ty
-                    tile.tx = nil
-                    tile.ty = nil
-                    tile.start_x = tile.x
-                    tile.start_y = tile.y
-                    tile.w = tile.default_w
-                    tile.h = tile.default_h
-                    tile.status = :idle
-                end
-
-                @swap = []
-                @swap_tick = 0
-                @highlight = false
-            end
-        else
-            @state = :remove
-        end
-    end
-
     def highlight_or_flag x, y
         if @tiles.has_key?([x,y])
             h = @highlight
@@ -309,9 +281,20 @@ class Grid
 
         case @state
         when :swap
-            animate_swap
+            if @swap.any?
+                pos1, pos2 = @swap
+                if @tiles[pos1].status == :idle and @tiles[pos2].status == :idle
+                    @tiles[pos1], @tiles[pos2] = @tiles[pos2], @tiles[pos1]
+
+                    @swap = []
+                    @swap_tick = 0
+                    @highlight = false
+                end
+            else
+                @state = :remove
+            end
         when :remove
-            #remove_tick
+            remove_tick
         when :drop
             drop_tick
         when :fill
