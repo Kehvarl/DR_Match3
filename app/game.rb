@@ -275,17 +275,21 @@ class Grid
         end
     end
 
-
     def tick
         @tiles.each {|t| t[1].tick}
+
+        if @tiles.any? { |_, tile| tile.animating? }
+            #update_tile_positions_for_animations
+            return
+        end
 
         case @state
         when :swap
             if @swap.any?
                 pos1, pos2 = @swap
                 if @tiles[pos1].status == :idle and @tiles[pos2].status == :idle
-                    @tiles[pos1], @tiles[pos2] = @tiles[pos2], @tiles[pos1]
 
+                    @tiles[pos1], @tiles[pos2] = @tiles[pos2], @tiles[pos1]
                     @swap = []
                     @swap_tick = 0
                     @highlight = false
