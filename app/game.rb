@@ -46,44 +46,44 @@ class Grid
     end
 
     def get_click
-        if @mouse.click
-            point = @mouse.click.point
-
-            x = (point.x / @tile_w).to_i
-            y = ((point.y - @min_y) / @tile_h).to_i
-            return [x,y]
+        if not @mouse.click
+            return false
         end
-        return false
+
+        point = @mouse.click.point
+
+        x = (point.x / @tile_w).to_i
+        y = ((point.y - @min_y) / @tile_h).to_i
+        [x,y]
     end
 
     def adjacent? a, b
-        if a.x == b.x
-            return ((a.y == b.y-1) or (a.y == b.y+1))
-        elsif a.y == b.y
-            return ((a.x == b.x-1) or (a.x == b.x+1))
-        else
-            return false
-        end
+        dx = (a.x - b.x).abs
+        dy = (a.y - b.y).abs
+        (dx == 1 && dy == 0) || (dx == 0 && dy == 1)
     end
 
     def highlight_or_flag x, y
-        if @tiles.has_key?([x,y])
-            h = @highlight
-            if (not h) or (not adjacent?({x:x,y:y}, {x:h.gx, y:h.gy}))
-                tx = x * @tile_w
-                ty = (y * @tile_h) + @min_y
-                @highlight = {gx:x, gy:y, x:tx, y:ty, w:@tile_w, h:@tile_h, r:255, g:255, b:0, a:128}.solid!
-            else
-                t0 = @tiles[[x,y]]
-                t1 = @tiles[[h.gx, h.gy]]
+        if not @tiles.has_key?([x,y])
+          return
+        end
 
-                t0.start_swap_to(t1.x, t1.y)
-                t1.start_swap_to(t0.x, t0.y)
+        h = @highlight
+        if (not h) or (not adjacent?({x:x,y:y}, {x:h.gx, y:h.gy}))
+            tx = x * @tile_w
+            ty = (y * @tile_h) + @min_y
+            @highlight = {gx:x, gy:y, x:tx, y:ty, w:@tile_w, h:@tile_h, r:255, g:255, b:0, a:128}.solid!
+        else
+            t0 = @tiles[[x,y]]
+            t1 = @tiles[[h.gx, h.gy]]
 
-                @swap = [[x,y],[h.gx, h.gy]]
-                @swap_tick = 0
-                @state = :swap
-            end
+            t0.start_swap_to(t1.x, t1.y)
+            t1.start_swap_to(t0.x, t0.y)
+
+            @swap = [[x,y],[h.gx, h.gy]]
+            @swap_tick = 0
+            @state = :swap
+            @highlight = false
         end
     end
 
