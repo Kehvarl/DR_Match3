@@ -32,10 +32,8 @@ class Tile
         @frame_delay = vals.frame_delay || 10
         @current_delay = @frame_delay
 
-        # Center tile within slot
         @x += (@s - @w).div(2)
 
-        # Movement targets
         @tx = nil
         @ty = nil
         @tgy = nil
@@ -45,6 +43,7 @@ class Tile
         animate_idle
         case @status
         when :swap then animate_swap
+        when :removing then animate_removal
         when :drop then animate_drop
         when :fill then animate_fill
         end
@@ -63,27 +62,64 @@ class Tile
         animate_to(@tx, @ty, :swap)
     end
 
+    def animate_removal
+        animate_scale(:removal)
+    end
+
     def animate_drop
-        animate_to(@x, @tgy, :drop, axis: :y)
+        animate_to(@x, @ty, :drop, axis: :y)
     end
 
     def animate_fill
-        animate_to(@x, @tgy, :fill, axis: :y)
+        animate_scale(:fill)
+    end
+
+    def animate_scale(type)
+        duration = 30
+        e = Easing.smooth_step(
+            start_at: @ease_tick,
+            end_at: @ease_tick + duration,
+            tick_count: Kernel.tick_count,
+            power: 2
+        )
+
+        case type
+        when :fill
+            @w = (@default_w * e).round
+            @h = (@default_h * e).round
+        when :removal
+            @w = (@start_w * (1 - e)).round
+            @h = (@start_h * (1 - e)).round
+        end
+
+        if (@w == @default_w && @h == @default_h) || (@w <= 0 || @h <= 0)
+            @status = :idle if type == :fill
+            @status = :removed if type == :removal
+        end
     end
 
     def animate_to(target_x, target_y, type, axis: :both)
-        @ease_tick += 1
         duration = 30
-        if @ease_tick >= duration
+        e = Easing.smooth_step(
+            start_at: @ease_tick,
+            end_at: @ease_tick + duration,
+            tick_count: Kernel.tick_count
+        )
+
+        case axis
+        when :x, :both
+            @x = @start_x + ((target_x - @start_x) * e)
+        end
+        case axis
+        when :y, :both
+            @y = @start_y + ((target_y - @start_y) * e)
+        end
+
+        if Kernel.tick_count >= @ease_tick + duration
             @x = target_x if axis == :x || axis == :both
             @y = target_y if axis == :y || axis == :both
             @status = :idle
             @ease_tick = 0
-        else
-            p = @ease_tick / duration.to_f
-            e = p * p * (3 - 2 * p) # smootherstep
-            @x = @start_x + ((target_x - @start_x) * e) if axis == :x || axis == :both
-            @y = @start_y + ((target_y - @start_y) * e) if axis == :y || axis == :both
         end
     end
 
@@ -93,22 +129,27 @@ class Tile
         @start_x = @x
         @start_y = @y
         @status = :swap
-        @ease_tick = 0
+        @ease_tick = Kernel.tick_count
     end
 
-    def start_drop_to(tgy)
+    def start_removal!
+        @ease_tick = Kernel.tick_count
+        @start_w = @w
+        @start_h = @h
+        @status = :removing
+    end
+
+    def start_drop_to(tgy, ty)
         @start_y = @y
         @tgy = tgy
+        @ty = ty
         @status = :drop
-        @ease_tick = 0
+        @ease_tick = Kernel.tick_count
     end
 
-    def start_fill_from(start_y, tgy)
-        @start_y = start_y
-        @tgy = tgy
-        @y = start_y
+    def start_fill
         @status = :fill
-        @ease_tick = 0
+        @ease_tick = Kernel.tick_count
     end
 
     def idle?
@@ -116,7 +157,11 @@ class Tile
     end
 
     def animating?
-        [:drop, :swap, :fill].include?(@status)
+        [:drop, :removing, :swap, :fill].include?(@status)
+    end
+
+    def removal_done?
+        @status == :removed
     end
 
     def to_str

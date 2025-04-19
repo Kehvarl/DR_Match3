@@ -87,76 +87,53 @@ class Grid
         end
     end
 
-    def check_vertical x, y
-        ref = @tiles[[x,y]].name
-        linked = [[x,y]]
-        ty = y +1
-        while ty < @h
-            if @tiles.has_key?([x,ty]) and @tiles[[x,ty]].name == ref
-                linked << [x,ty]
-            else
-                break
-            end
-            ty += 1
-        end
+    def check_horizontal(x, y)
+      ref = @tiles[[x, y]]&.name
+      return [] unless ref
 
-        ty = y -1
-        while ty > 0
-            if @tiles.has_key?([x,ty]) and @tiles[[x,ty]].name == ref
-                linked << [x,ty]
-            else
-                break
-            end
-            ty -= 1
+      [[1, x + 1], [-1, x - 1]].flat_map do |dir, tx|
+        chain = []
+        while tx.between?(0, @w - 1) && @tiles[[tx, y]]&.name == ref
+          chain << [tx, y]
+          tx += dir
         end
-        return linked
+        chain
+      end.unshift([x, y])
     end
 
-    def check_horizontal x, y
-        ref = @tiles[[x,y]].name
-        linked = [[x,y]]
-        tx = x +1
-        while tx < @w
-            if @tiles.has_key?([tx,y]) and @tiles[[tx,y]].name == ref
-                linked << [tx,y]
-            else
-                break
-            end
-            tx += 1
-        end
+    def check_vertical(x, y)
+      ref = @tiles[[x, y]]&.name
+      return [] unless ref
 
-        tx = x -1
-        while tx > 0
-            if @tiles.has_key?([tx,y]) and @tiles[[tx,y]].name == ref
-                linked << [tx,y]
-            else
-                break
-            end
-            tx -= 1
+      [[1, y + 1], [-1, y - 1]].flat_map do |dir, ty|
+        chain = []
+        while ty.between?(0, @h - 1) && @tiles[[x, ty]]&.name == ref
+          chain << [x, ty]
+          ty += dir
         end
-        return linked
+        chain
+      end.unshift([x, y])
     end
 
     def find_groups
-        out = []
-        (0...@h).each do |y|
-            (0...@w).each do |x|
-                if @tiles.has_key?([x,y])
-                    a = check_horizontal(x, y)
-                    b = check_vertical(x, y)
-                    adj = []
-                    if a.size > 3
-                        adj += a
-                    end
-                    if  b.size > 3
-                        adj += b
-                    end
-                    adj = adj.select{ |t| not out.include?(t)}
-                    out += adj
-                end
-            end
+      out = []
+      (0...@h).each do |y|
+        (0...@w).each do |x|
+          next unless @tiles.has_key?([x, y])
+
+          horizontal = check_horizontal(x, y)
+          vertical = check_vertical(x, y)
+
+          group = []
+          group.concat(horizontal) if horizontal.size > 3
+          group.concat(vertical) if vertical.size > 3
+
+          group.each do |tile|
+            out << tile unless out.include?(tile)
+          end
         end
-        out
+      end
+      out
     end
 
     def find_drops
@@ -182,10 +159,9 @@ class Grid
         drop_tiles.each do |x, y, drop_y, fall_distance|
             stack_y = y
             while @tiles.has_key?([x, stack_y])
-                @tiles[[x, stack_y]].tgy = drop_y + (stack_y - y)
-                @tiles[[x, stack_y]].ty = @tiles[[x, stack_y]].y - max_fall[x]
-                @tiles[[x, stack_y]].start_y = @tiles[[x, stack_y]].y
-                @tiles[[x, stack_y]].ease_tick = @args.tick_count
+                tile = @tiles[[x, stack_y]]
+                tile.start_drop_to(drop_y + (stack_y - y), tile.y - max_fall[x])
+
                 @drop << [x, stack_y]
                 stack_y += 1
             end
@@ -195,16 +171,10 @@ class Grid
     def remove_tick
         if @remove.any?
             @remove.reject! do |r|
-                scale = Easing.smooth_stop(start_at: @remove_start, end_at: @remove_start+60,
-                                        tick_count: @args.state.clock, power: 2)
-
-                @tiles[r].w = (@tiles[r].default_w * (1-scale)).round
-                @tiles[r].h = (@tiles[r].default_h * (1-scale)).round
-                if @tiles[r].w <= 0 || @tiles[r].h <= 0
-                    score = @tiles[r].score
-                    if @remove.size > 4
-                        score += (@remove.size - 4) * 20
-                    end
+                tile = @tiles[r]
+                if tile.removal_done?
+                    score = tile.score
+                    score += (@remove.size - 4) * 20 if @remove.size > 4
                     @score += score
                     @tiles.delete(r)
                     true
@@ -220,38 +190,27 @@ class Grid
 
     def drop_tick
         if @drop.any?
-            next_d = []
-            @drop.each do |d|
-                if @tiles.has_key?(d)
-                    perc = (@args.tick_count - @tiles[d].ease_tick) / 30
-                    perc = 1.0 if perc > 1.0
-
-                    @tiles[d].y = Easing.smooth_step(initial: @tiles[d].start_y,
-                                                     final: @tiles[d].ty,
-                                                     perc: perc, power: 2)
-
-                    if perc < 1.0
-                        next_d << d
-                    else
-                        new_pos = [d[0], @tiles[d].tgy]
-                        @tiles[d].y = @tiles[d].ty
-                        @tiles[d].tx = @tiles[d].ty = @tiles[d].tgy = @tiles[d].start_y = @tiles[d].ease_tick = nil
-                        temp = @tiles[d]
-                        @tiles.delete(d)
-                        @tiles[new_pos] = temp
-                    end
+            @drop.reject! do |d|
+                tile = @tiles[d]
+                next true unless tile
+                if tile.idle?
+                    new_pos = [d[0], tile.tgy]
+                    @tiles.delete(d)
+                    @tiles[new_pos] = tile
+                    true
+                else
+                  false
                 end
-            end
-            @drop = next_d.dup
-        else
+              end
+          else
             (0...@h).each do |y|
                 (0...@w).each do |x|
                     next if @tiles.has_key?([x, y])
-                    @fill << [x,y]
+                    @fill << [x, y]
                     @tiles[[x, y]] = make_tile(x, y, @min_y, @tile_w, @tile_h, ['green', 'red', 'black', 'blue'].sample)
                     @tiles[[x, y]].w = 0
                     @tiles[[x, y]].h = 0
-                    @fill_start = @args.tick_count
+                    @tiles[[x, y]].start_fill
                 end
             end
             @state = :fill
@@ -260,16 +219,7 @@ class Grid
 
     def fill_tick
         if @fill.any?
-            @fill.reject! do |f|
-
-                scale = Easing.smooth_stop(start_at: @fill_start, end_at: @fill_start+30,
-                                        tick_count: @args.state.clock, power: 2)
-
-                @tiles[f].w = (@tiles[f].default_w * scale).round
-                @tiles[f].h = (@tiles[f].default_h * scale).round
-
-                @tiles[f].w == @tiles[f].default_w && @tiles[f].h == @tiles[f].default_h
-            end
+            @fill.reject!{|f| not @tiles[f].animating?}
         else
             @state = :game
         end
@@ -277,11 +227,6 @@ class Grid
 
     def tick
         @tiles.each {|t| t[1].tick}
-
-        if @tiles.any? { |_, tile| tile.animating? }
-            #update_tile_positions_for_animations
-            return
-        end
 
         case @state
         when :swap
@@ -310,13 +255,12 @@ class Grid
 
             @remove = find_groups
             if @remove.any?
+                @remove.each { |r| @tiles[r].start_removal! }
                 @remove_start = @args.tick_count
-                @remove.each { |r| @tiles[r].status = :remove }
                 @state = :remove
             end
         end
     end
-
 
     def render
         out = []
