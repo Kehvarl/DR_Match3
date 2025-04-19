@@ -14,16 +14,10 @@ class Grid
         @highlight = false
         @state = :game
         @swap = []
-        @swap_tick = 0
         @remove = []
-        @remove_start = 0
         @drop = []
-        @drop_tick = 0
         @fill = []
-        @fill_start = 0
-        @vy = 5
         setup_tiles
-
     end
 
     def make_tile x, y, sy, w, h, name
