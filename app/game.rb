@@ -11,12 +11,15 @@ class Grid
         @tile_w = 80
         @tile_h = 80
         @min_y = 480
+        @match_count = 3
         @highlight = false
         @state = :game
         @swap = []
         @remove = []
         @drop = []
         @fill = []
+        @cascade_count = 0
+        @cascade_active = false
         setup_tiles
     end
 
@@ -119,8 +122,8 @@ class Grid
           vertical = check_vertical(x, y)
 
           group = []
-          group.concat(horizontal) if horizontal.size > 3
-          group.concat(vertical) if vertical.size > 3
+          group.concat(horizontal) if horizontal.size >= @match_count
+          group.concat(vertical) if vertical.size >= @match_count
 
           group.each do |tile|
             out << tile unless out.include?(tile)
@@ -169,6 +172,7 @@ class Grid
                 if tile.removal_done?
                     score = tile.score
                     score += (@remove.size - 4) * 20 if @remove.size > 4
+                    score += @cascade_count * 10
                     @score += score
                     @tiles.delete(r)
                     true
@@ -215,7 +219,20 @@ class Grid
         if @fill.any?
             @fill.reject!{|f| not @tiles[f].animating?}
         else
-            @state = :game
+            @remove = find_groups
+            if @remove.any?
+                @remove.each { |r| @tiles[r].start_removal! }
+                @remove_start = @args.tick_count
+                @state = :remove
+                @cascade_active = true
+                @cascade_count += 1
+            else
+                if @cascade_active
+                    @cascade_active = false
+                    @cascade_count = 0
+                end
+                @state = :game
+            end
         end
     end
 
