@@ -1,10 +1,12 @@
 class Tile
     attr_sprite
     attr_accessor :start_x, :start_y, :ease_tick, :tx, :ty, :tgy, :status,
-                :name, :score, :default_w, :default_h
+                :name, :color, :bottle, :score, :default_w, :default_h
 
     def initialize(vals)
         @name = vals.name || "Undefined"
+        @color = vals.color || "Undefined"
+        @bottle = vals.bottle || "Undefined"
         @score = vals.score || 10
 
         @x = vals.x || 0

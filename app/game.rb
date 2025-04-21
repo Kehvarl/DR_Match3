@@ -11,30 +11,38 @@ class Grid
         @tile_w = 80
         @tile_h = 80
         @min_y = 480
+        @match_count = 3
+        @color_score_modifier  = 1.0
+        @bottle_score_modifier = 1.0
+        @both_score_modifier   = 1.5
         @highlight = false
         @state = :game
         @swap = []
         @remove = []
         @drop = []
         @fill = []
+        @cascade_count = 0
+        @cascade_active = false
         setup_tiles
     end
 
-    def make_tile x, y, sy, w, h, name
-        type = [
+    def make_tile x, y, sy, w, h
+        bottle = [
             {name:'bv', tw:22, th:37, frames:8},
             {name:'gp', tw:24, th:39, frames:12},
             ].sample()
-        Tile.new({name: type.name + name, x:x*w, y:sy+y*h, path:"sprites/potions/#{type.name}_#{name}.png",
-                  tile_h:type.th, tile_w:type.tw,
-                  frames:type.frames, start_frame: rand(7), frame_delay: rand(4) + 4})
+        color = ['green', 'red', 'black', 'blue'].sample()
+        Tile.new({name: bottle.name + color, color: color, bottle: bottle.name,
+          x:x*w, y:sy+y*h, path:"sprites/potions/#{bottle.name}_#{color}.png",
+                  tile_h:bottle.th, tile_w:bottle.tw,
+                  frames:bottle.frames, start_frame: rand(7), frame_delay: rand(4) + 4})
     end
 
     def setup_tiles
         @tiles = {}
         (0...@h).each do |y|
             (0...@w).each do |x|
-                @tiles[[x,y]] = make_tile(x, y, @min_y, @tile_w, @tile_h, ['green', 'red', 'black', 'blue'].sample)
+                @tiles[[x,y]] = make_tile(x, y, @min_y, @tile_w, @tile_h)
             end
         end
     end
@@ -81,95 +89,145 @@ class Grid
         end
     end
 
-    def check_horizontal(x, y)
-      ref = @tiles[[x, y]]&.name
+    def scan_line_for_type(x, y, dx, dy, type)
+      ref = @tiles[[x, y]]
       return [] unless ref
 
-      [[1, x + 1], [-1, x - 1]].flat_map do |dir, tx|
-        chain = []
-        while tx.between?(0, @w - 1) && @tiles[[tx, y]]&.name == ref
-          chain << [tx, y]
-          tx += dir
-        end
-        chain
-      end.unshift([x, y])
+      value = case type
+              when :color then ref.color
+              when :bottle then ref.bottle
+              when :both then [ref.color, ref.bottle]
+              end
+
+      coords = [[x, y]]
+      tx, ty = x + dx, y + dy
+
+      while tx.between?(0, @w - 1) && ty.between?(0, @h - 1)
+        tile = @tiles[[tx, ty]]
+        break unless tile
+
+        match = case type
+                when :color then tile.color == value
+                when :bottle then tile.bottle == value
+                when :both then [tile.color, tile.bottle] == value
+                end
+
+        break unless match
+        coords << [tx, ty]
+        tx += dx
+        ty += dy
+      end
+
+      coords
     end
 
-    def check_vertical(x, y)
-      ref = @tiles[[x, y]]&.name
-      return [] unless ref
+    def merge_match_types(existing, new_type)
+      return new_type unless existing
+      return existing if existing == new_type
+      :both
+    end
 
-      [[1, y + 1], [-1, y - 1]].flat_map do |dir, ty|
-        chain = []
-        while ty.between?(0, @h - 1) && @tiles[[x, ty]]&.name == ref
-          chain << [x, ty]
-          ty += dir
-        end
-        chain
-      end.unshift([x, y])
+    def get_match_type(tiles)
+      colors = tiles.map(&:color).uniq
+      bottles = tiles.map(&:bottle).uniq
+
+      if colors.size == 1 && bottles.size == 1
+        :both
+      elsif colors.size == 1
+        :color
+      elsif bottles.size == 1
+        :bottle
+      else
+        nil
+      end
     end
 
     def find_groups
-      out = []
-      (0...@h).each do |y|
-        (0...@w).each do |x|
-          next unless @tiles.has_key?([x, y])
+      out = {}
 
-          horizontal = check_horizontal(x, y)
-          vertical = check_vertical(x, y)
+      [:color, :bottle, :both].each do |type|
+        (0...@h).each do |y|
+          (0...@w).each do |x|
+            next unless @tiles.has_key?([x, y])
 
-          group = []
-          group.concat(horizontal) if horizontal.size > 3
-          group.concat(vertical) if vertical.size > 3
+            horiz = (scan_line_for_type(x, y, 1, 0, type) + scan_line_for_type(x, y, -1, 0, type)).uniq
+            vert  = (scan_line_for_type(x, y, 0, 1, type) + scan_line_for_type(x, y, 0, -1, type)).uniq
 
-          group.each do |tile|
-            out << tile unless out.include?(tile)
+            [horiz, vert].each do |coords|
+              next if coords.size < @match_count
+
+              coords.each do |tile_coord|
+                out[tile_coord] = merge_match_types(out[tile_coord], type)
+              end
+            end
           end
         end
       end
+
       out
     end
 
     def find_drops
-        drop_tiles = []
-        max_fall = {}
+      drop_tiles = []
+      max_fall = {}
 
-        (1...@h).each do |y|
-            (0...@w).each do |x|
-                next unless @tiles.has_key?([x, y]) && !@drop.include?([x, y])
-                next if @tiles.has_key?([x, y - 1])
+      (1...@h).each do |y|
+        (0...@w).each do |x|
+          next unless @tiles.has_key?([x, y]) && !@drop.include?([x, y])
+          next if @tiles.has_key?([x, y - 1])
 
-                drop_y = y
-                while drop_y > 0 && !@tiles.has_key?([x, drop_y - 1])
-                    drop_y -= 1
-                end
+          drop_y = y
+          while drop_y > 0 && !@tiles.has_key?([x, drop_y - 1])
+            drop_y -= 1
+          end
 
-                fall_distance = (y - drop_y) * @tile_h
-                max_fall[x] = fall_distance if !max_fall[x] || fall_distance > max_fall[x]
-                drop_tiles << [x, y, drop_y, fall_distance]
-            end
+          fall_distance = (y - drop_y) * @tile_h
+          max_fall[x] = fall_distance if !max_fall[x] || fall_distance > max_fall[x]
+          drop_tiles << [x, y, drop_y, fall_distance]
         end
+      end
 
-        drop_tiles.each do |x, y, drop_y, fall_distance|
-            stack_y = y
-            while @tiles.has_key?([x, stack_y])
-                tile = @tiles[[x, stack_y]]
-                tile.start_drop_to(drop_y + (stack_y - y), tile.y - max_fall[x])
+      drop_tiles.each do |x, y, drop_y, fall_distance|
+        stack_y = y
+        while @tiles.has_key?([x, stack_y])
+          tile = @tiles[[x, stack_y]]
+          tile.start_drop_to(drop_y + (stack_y - y), tile.y - max_fall[x])
 
-                @drop << [x, stack_y]
-                stack_y += 1
-            end
+          @drop << [x, stack_y]
+          stack_y += 1
         end
+      end
+    end
+
+
+    def calculate_score(tile, match_type)
+        base_score = tile.score
+
+        color_mod  = @color_score_modifier  || 1.0
+        bottle_mod = @bottle_score_modifier || 1.0
+        both_mod   = @both_score_modifier   || 1.5
+
+        modifier = case match_type
+                   when :color  then color_mod
+                   when :bottle then bottle_mod
+                   when :both   then both_mod
+                   else 1.0
+                   end
+
+        score = base_score * modifier
+        score += (@remove.size - 4) * 20 if @remove.size > 4
+        score += @cascade_count * 10 if @cascade_count > 0
+
+        score.to_i
     end
 
     def remove_tick
         if @remove.any?
-            @remove.reject! do |r|
+          puts @remove
+            @remove.reject! do |r, match_type|
                 tile = @tiles[r]
                 if tile.removal_done?
-                    score = tile.score
-                    score += (@remove.size - 4) * 20 if @remove.size > 4
-                    @score += score
+                    @score += calculate_score(tile, match_type)
                     @tiles.delete(r)
                     true
                 else
@@ -201,7 +259,7 @@ class Grid
                 (0...@w).each do |x|
                     next if @tiles.has_key?([x, y])
                     @fill << [x, y]
-                    @tiles[[x, y]] = make_tile(x, y, @min_y, @tile_w, @tile_h, ['green', 'red', 'black', 'blue'].sample)
+                    @tiles[[x, y]] = make_tile(x, y, @min_y, @tile_w, @tile_h)
                     @tiles[[x, y]].w = 0
                     @tiles[[x, y]].h = 0
                     @tiles[[x, y]].start_fill
@@ -215,7 +273,20 @@ class Grid
         if @fill.any?
             @fill.reject!{|f| not @tiles[f].animating?}
         else
-            @state = :game
+            @remove = find_groups
+            if @remove.any?
+                @remove.each { |r, match_type| @tiles[r].start_removal! }
+                @remove_start = @args.tick_count
+                @state = :remove
+                @cascade_active = true
+                @cascade_count += 1
+            else
+                if @cascade_active
+                    @cascade_active = false
+                    @cascade_count = 0
+                end
+                @state = :game
+            end
         end
     end
 
@@ -249,7 +320,7 @@ class Grid
 
             @remove = find_groups
             if @remove.any?
-                @remove.each { |r| @tiles[r].start_removal! }
+                @remove.each { |r, match_type| @tiles[r].start_removal! }
                 @remove_start = @args.tick_count
                 @state = :remove
             end
