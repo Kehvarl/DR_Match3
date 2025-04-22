@@ -3,6 +3,7 @@ Organize the potions to make room for new ones!
 A match-3 game in DragonRuby GTK
 
 Part of Kehvarl's Game-A-Month personal challenge.
+Extended to 2 months for fun and ~~profit~~
 
 ## Gameplay
 * Game Field: A rectangular grid of tiles
