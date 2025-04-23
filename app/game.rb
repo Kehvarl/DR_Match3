@@ -78,7 +78,6 @@ class Grid
         else
             t0 = @tiles[[x,y]]
             t1 = @tiles[[h.gx, h.gy]]
-
             t0.start_swap_to(t1.x, t1.y)
             t1.start_swap_to(t0.x, t0.y)
 
@@ -222,6 +221,10 @@ class Grid
     end
 
     def remove_tick
+        # Animate all to 0
+        # Clear from Remove
+        # Add to DropList
+        # Go handle drops
         if @remove.any?
           puts @remove
             @remove.reject! do |r, match_type|
