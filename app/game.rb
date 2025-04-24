@@ -11,7 +11,7 @@ class Grid
         @tile_w = 80
         @tile_h = 80
         @min_y = 480
-        @match_count = 3
+        @match_count = 5
         @color_score_modifier  = 1.0
         @bottle_score_modifier = 1.0
         @both_score_modifier   = 1.5
@@ -19,6 +19,7 @@ class Grid
         @state = :game
         @swap = []
         @remove = []
+        @pending_drop = []
         @drop = []
         @fill = []
         @cascade_count = 0
@@ -226,7 +227,6 @@ class Grid
         # Add to DropList
         # Go handle drops
         if @remove.any?
-          puts @remove
             @remove.reject! do |r, match_type|
                 tile = @tiles[r]
                 if tile.removal_done?
