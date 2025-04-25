@@ -222,10 +222,6 @@ class Grid
     end
 
     def remove_tick
-        # Animate all to 0
-        # Clear from Remove
-        # Add to DropList
-        # Go handle drops
         if @remove.any?
             @remove.reject! do |r, match_type|
                 tile = @tiles[r]
