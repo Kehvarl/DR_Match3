@@ -11,7 +11,7 @@ class Grid
         @tile_w = 80
         @tile_h = 80
         @min_y = 480
-        @match_count = 5
+        @match_count = 4
         @color_score_modifier  = 1.0
         @bottle_score_modifier = 1.0
         @both_score_modifier   = 1.5
@@ -31,6 +31,7 @@ class Grid
         bottle = [
             {name:'bv', tw:22, th:37, frames:8},
             {name:'gp', tw:24, th:39, frames:12},
+            {name:'bb', tw:18, th:35, frames:7},
             ].sample()
         color = ['green', 'red', 'black', 'blue'].sample()
         Tile.new({name: bottle.name + color, color: color, bottle: bottle.name,
