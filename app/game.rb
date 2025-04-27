@@ -32,6 +32,8 @@ class Grid
             {name:'bv', tw:22, th:37, frames:8},
             {name:'gp', tw:24, th:39, frames:12},
             {name:'bb', tw:18, th:35, frames:7},
+            {name:'se', tw:15, th:30, frames:7},
+
             ].sample()
         color = ['green', 'red', 'black', 'blue'].sample()
         Tile.new({name: bottle.name + color, color: color, bottle: bottle.name,
