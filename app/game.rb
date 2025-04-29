@@ -310,6 +310,9 @@ class Grid
                 @state = :remove
             end
         when :remove
+            # Need to make things snappier
+            #  On match: remove from Tiles menu so Drop can happen immediately
+            #  Drop and fill without waiting
             remove_tick
         when :drop
             drop_tick
