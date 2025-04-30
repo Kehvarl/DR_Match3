@@ -77,7 +77,7 @@ class Tile
     end
 
     def animate_scale(type)
-        duration = 30
+        duration = 15
         e = Easing.smooth_step(
             start_at: @ease_tick,
             end_at: @ease_tick + duration,
@@ -101,7 +101,7 @@ class Tile
     end
 
     def animate_to(target_x, target_y, type, axis: :both)
-        duration = 30
+        duration = 15
         e = Easing.smooth_step(
             start_at: @ease_tick,
             end_at: @ease_tick + duration,
